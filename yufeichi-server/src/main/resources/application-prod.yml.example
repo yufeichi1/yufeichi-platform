@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+
+spring:
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/yufeichi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: your_username
+    password: your_password
+
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: your_redis_password
+      database: 0
+
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+
+
+jwt:
+  secret: please-change-this-to-a-random-string-at-least-32-chars
+  expire-minutes: 1440
+
+
+
+file:
+  upload-path: /data/yufeichi/uploads
+  access-prefix: /uploads
+
+
+
+logging:
+  config: classpath:logback-spring.xml

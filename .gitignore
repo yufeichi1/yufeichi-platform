@@ -1,6 +1,7 @@
 # =========================
 # Java / Spring Boot
 # =========================
+
 target/
 *.class
 *.jar
@@ -11,14 +12,21 @@ target/
 hs_err_pid*
 replay_pid*
 
+
+# =========================
 # Maven
+# =========================
+
 .mvn/wrapper/maven-wrapper.jar
+
 
 # =========================
 # Node / Vue / Vite
 # =========================
+
 node_modules/
 dist/
+
 .pnpm-store/
 coverage/
 
@@ -27,38 +35,56 @@ coverage/
 .eslintcache
 vite.config.*.timestamp-*
 
+
 # Package manager logs
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+
 # =========================
-# Environment variables
+# Environment Variables
 # =========================
+
 .env
 .env.*
 *.env
 
-# 允许提交环境变量示例文件
+# 保留环境变量模板
 !.env.example
 !**/.env.example
 
-# Spring Boot local/private config
+
+# =========================
+# Spring Boot 配置
+# =========================
+
+# 生产环境真实配置（包含密码、密钥）
 application-prod.yml
-application-dev-local.yml
+
+# 本地私有配置
 application-local.yml
+application-dev-local.yml
 application-*-local.yml
+
+# 保留生产配置模板
+!application-prod.yml.example
+
 
 # =========================
 # IDE
 # =========================
+
 .idea/
 .vscode/
+
 *.iml
 *.ipr
 *.iws
+
 out/
+
 
 # Eclipse
 .classpath
@@ -66,45 +92,70 @@ out/
 .settings/
 .factorypath
 
+
 # =========================
 # Logs
 # =========================
+
 *.log
+
 logs/
 log/
 
+
 # =========================
-# Temporary files
+# Temporary Files
 # =========================
+
 tmp/
 temp/
+
 .cache/
+
 *.tmp
 *.swp
 *.swo
+
 *~
 
+
 # =========================
-# Local runtime data
+# Runtime Data
 # =========================
+
+# 用户上传文件
 uploads/
+
+# 本地运行数据
 data/
 
-# PID files
+# PID
 *.pid
+
 
 # =========================
 # Secrets / Certificates
 # =========================
+
 *.pem
 *.key
 *.p12
 *.pfx
 *.jks
 
+
+# =========================
+# Database Local Files
+# =========================
+
+*.db
+*.sqlite
+
+
 # =========================
 # OS
 # =========================
+
 .DS_Store
 Thumbs.db
 Desktop.ini

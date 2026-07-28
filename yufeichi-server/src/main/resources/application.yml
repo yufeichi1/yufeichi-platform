@@ -1,0 +1,10 @@
+spring:
+  profiles:
+    active: dev
+
+  application:
+    name: yufeichi-server
+
+
+server:
+  port: 8080
