@@ -1,0 +1,111 @@
+# =========================
+# Java / Spring Boot
+# =========================
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# JVM crash files
+hs_err_pid*
+replay_pid*
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# =========================
+# Node / Vue / Vite
+# =========================
+node_modules/
+dist/
+.pnpm-store/
+coverage/
+
+# TypeScript / ESLint / Vite cache
+*.tsbuildinfo
+.eslintcache
+vite.config.*.timestamp-*
+
+# Package manager logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+*.env
+
+# 允许提交环境变量示例文件
+!.env.example
+!**/.env.example
+
+# Spring Boot local/private config
+application-prod.yml
+application-dev-local.yml
+application-local.yml
+application-*-local.yml
+
+# =========================
+# IDE
+# =========================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+.factorypath
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+log/
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+.cache/
+*.tmp
+*.swp
+*.swo
+*~
+
+# =========================
+# Local runtime data
+# =========================
+uploads/
+data/
+
+# PID files
+*.pid
+
+# =========================
+# Secrets / Certificates
+# =========================
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
