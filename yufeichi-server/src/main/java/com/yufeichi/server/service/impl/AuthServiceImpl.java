@@ -103,6 +103,7 @@ public class AuthServiceImpl implements AuthService {
                 .avatar(user.getAvatar())
                 .email(user.getEmail())
                 .roles(loginUser.getRoles())
+                .permissions(loginUser.getPermissions())
                 .build();
     }
 }

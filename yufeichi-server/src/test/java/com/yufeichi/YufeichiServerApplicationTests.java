@@ -113,6 +113,7 @@ class YufeichiServerApplicationTests {
         assertResult(me, 200, 0);
         assertThat(me.getBody().path("data").path("username").asText()).isEqualTo("admin");
         assertThat(me.getBody().path("data").path("roles").toString()).contains("super_admin");
+        assertThat(me.getBody().path("data").path("permissions").toString()).contains("article:add", "article:publish");
         assertThat(me.getBody().path("data").has("password")).isFalse();
     }
 

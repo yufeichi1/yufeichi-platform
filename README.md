@@ -1,6 +1,6 @@
 # Yufeichi Platform
 
-基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成范围是 **Day1 认证和构建基线 + Day2 核心内容 API 与图片上传**，尚未完成内容网站或生产部署。
+基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成范围是 **Day1 认证和构建基线 + Day2 核心内容 API 与图片上传 + Day3 文章后台闭环**，尚未完成完整公开网站或生产部署。
 
 ## 已实现
 
@@ -13,17 +13,19 @@
 - 统一 `Result`：成功 `code=0`；错误同时返回正确的 HTTP 状态，不再用 HTTP 200 包装所有错误。
 - OpenAPI：`/v3/api-docs`；Knife4j 静态界面：`/doc.html`；Swagger UI：`/swagger-ui/index.html`。
 - 独立 test profile、真实 MySQL 8.4/Redis 7 容器测试、认证和异常回归测试。
+- 后台网页：登录与刷新恢复、权限菜单、文章分页/编辑/草稿/发布/下架/删除、分类标签维护、封面上传与失败重试。
+- 网页验收：Playwright 通过真实 Vite 代理连接独立 Java 21/MySQL 8.4/Redis 7 环境；支持完整业务闭环、401/403 和失败恢复检查。
 
-`logout` 当前只清理本次请求的认证上下文，客户端须删除本地 Token；服务端 Token 撤销属于 Day5。登录返回 permissions，当前 `/me` 返回基本信息和 roles，尚未返回 permissions。429 已有错误映射，登录限流尚未实现。
+`logout` 当前只清理本次请求的认证上下文，前端退出时删除本地 Token；服务端 Token 撤销属于 Day5。登录与 `/me` 均返回基本信息、roles 和 permissions。429 已有错误映射，登录限流尚未实现。
 
 ## 规划，尚未实现
 
-- Day3—Day4：前台和后台页面、路由、登录状态恢复、内容管理闭环。
+- Day4：项目管理网页、完整公开首页/文章/项目/关于页面、Markdown 安全渲染。
 - Day5：Redis 登录限流、退出撤销、生产配置模板和权限完整回归。
 - Day6—Day7：真实生产部署、备份恢复、回滚及交付。
 - 留言、评论、完整日志管理等后续能力。
 
-现有数据库表、依赖和 Security 白名单不代表业务功能已实现。前端仍为 Vue/Vite 脚手架；Element Plus、Axios、Pinia、Router 已安装，不等于已集成业务页面。
+现有数据库表、依赖和 Security 白名单不代表业务功能已实现。前端目前提供内容工作台入口和文章后台；未将项目、用户、角色等未实现的管理页面加入菜单。
 
 ## 固定 Java 21
 
@@ -76,7 +78,7 @@ dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器
 
 默认地址 `http://localhost:8080`。V2 的 `admin` 初始账户仅限本地首次开发使用；本次验收只使用临时测试库的种子账户，没有修改开发库账号。
 
-## 完整后端验收（Day1 + Day2）
+## 完整后端验收（Day1—Day3）
 
 ```powershell
 .\scripts\mvn21.ps1 clean verify
@@ -126,6 +128,38 @@ V1—V9 保持不变。公开服务前通过后续增量迁移禁用固定种子
 - 上传业务目录仅avatar/article/project/other；单文件及规范化后结果最大5MiB、最长边8192、最多1600万像素。JPEG保存为JPEG；PNG/WebP解码重编码为PNG，剥离元数据及尾随内容；动画仅保留首帧。
 - multipart文件上限5MB，请求上限6MB；Tomcat丢弃已拒绝请求体的上限8MB，以便常见超限请求返回完整413，极大请求仍可能被服务器断开。
 - 图片返回相对fileUrl，不返回磁盘路径。配置UPLOAD_PATH可持久保存，生产迁移时须同步备份该目录；本轮没有部署服务器。
-- 当前不提供文件删除、文件管理后台或前端页面；Markdown安全渲染与页面联调属于Day3/Day4。应用崩溃或磁盘清理失败不具备分布式事务保证，部署前仍需备份及孤儿文件运维策略。
+- 当前不提供文件删除或文件管理后台；Day3 编辑页提供封面上传，移除封面只清空文章引用。Markdown安全渲染属于Day4，目前编辑器提供安全的纯文本预览。应用崩溃或磁盘清理失败不具备分布式事务保证，部署前仍需备份及孤儿文件运维策略。
 
 Day2 验收记录见 [Day2 执行与验收报告](docs/Day2-执行与验收报告.md)。
+
+## Day3 前端运行与浏览器验收
+
+需要 Node.js 20.19+ 或 22.12+、pnpm。先按上文启动后端，再运行：
+
+```powershell
+cd yufeichi-web
+pnpm install --frozen-lockfile
+pnpm dev
+pnpm build
+```
+
+打开 Vite 输出的本地地址，进入 `/login` 或 `/admin/articles`。Vite 默认将 `/api` 和 `/uploads` 原样代理至 `http://127.0.0.1:8080`，不会删除 `/api` 前缀。若后端使用其他端口，在启动 Vite 的终端设置 `$env:API_PROXY_TARGET = 'http://127.0.0.1:其他端口'`；此变量只在 Vite 服务端使用，无需提交本地环境配置。
+
+完整网页验收必须使用独立数据库，仓库根目录执行：
+
+```powershell
+.\scripts\mvn21.ps1 clean verify
+pnpm --dir yufeichi-web install --frozen-lockfile
+pnpm --dir yufeichi-web exec playwright install chromium
+node scripts/test-web.mjs
+```
+
+脚本创建独立随机端口的 MySQL 8.4/Redis 7 容器，运行 test profile 的 Java 21 JAR 和 Vite。仅在 `day3_test` 中初始化测试角色；账号来自迁移中的公开开发种子，数据库/Redis 密码每次随机生成。所有业务写操作通过网页完成，权限负例会直接请求 API 验证服务端 403。脚本结束会停止自己创建的进程和容器，保留临时图片证据；不读取 `deploy/.env`，不连接开发/生产库。异常中断后只能按脚本日志中的 `yufeichi-day3-*` 容器名称核对回收。
+
+浏览器报告在 `yufeichi-web/playwright-report/`，截图在 `yufeichi-web/test-results/`，服务日志在 `yufeichi-web/.e2e-logs/`，均不提交 Git。测试前端代码以外也校验测试脚本类型：`pnpm --dir yufeichi-web exec tsc --ignoreConfig --noEmit --types node --module nodenext --target es2023 --skipLibCheck tests/admin.spec.ts playwright.config.ts`。
+
+生产构建输出 `yufeichi-web/dist/`。Vite 代理只用于开发；部署时 Nginx 需分别代理 `/api/`、映射 `/uploads/`，其余前端深层路由使用 `try_files $uri $uri/ /index.html`。生产 Nginx 配置仍属于 Day6，本轮未修改服务器。
+
+编辑失败保留表单，认证失效时在当前标签页内存中暂存未保存内容，同一账号重新登录后恢复；主动退出会清除暂存。关闭或刷新标签页不会持久保存未提交草稿，请使用“保存草稿”。Token 存于 localStorage，权限从 `/me` 获取，浏览器权限控制不能替代后端注解。
+
+Day3 验收记录见 [Day3 执行与验收报告](docs/Day3-执行与验收报告.md)。
