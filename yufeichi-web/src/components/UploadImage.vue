@@ -2,7 +2,11 @@
 import { ref } from "vue";
 import { uploadImage } from "@/api/content";
 import { errorMessage } from "@/api/http";
-const props = defineProps<{ modelValue: string | null; disabled?: boolean }>();
+const props = defineProps<{
+  modelValue: string | null;
+  disabled?: boolean;
+  bizType?: "article" | "project";
+}>();
 const emit = defineEmits<{
   "update:modelValue": [value: string | null];
   busy: [value: boolean];
@@ -18,9 +22,13 @@ async function upload() {
   error.value = "";
   progress.value = 0;
   try {
-    const result = await uploadImage(selected.value, (value) => {
-      progress.value = value;
-    });
+    const result = await uploadImage(
+      selected.value,
+      (value) => {
+        progress.value = value;
+      },
+      props.bizType,
+    );
     if (
       !/^\/uploads\/(avatar|article|project|other)\/[a-zA-Z0-9.-]+$/.test(
         result.fileUrl,
@@ -54,10 +62,10 @@ function choose(event: Event) {
     <img
       v-if="modelValue"
       :src="modelValue"
-      alt="文章封面"
+      :alt="bizType === 'project' ? '项目封面' : '文章封面'"
       class="cover-preview"
     />
-    <div v-else class="cover-placeholder">为文章选择一张封面</div>
+    <div v-else class="cover-placeholder">选择一张封面图片</div>
     <label class="file-picker"
       >选择封面<input
         aria-label="选择封面"

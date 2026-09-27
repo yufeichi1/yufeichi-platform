@@ -16,8 +16,16 @@ const route = useRoute();
     <p>{{ description }}</p>
     <RouterLink
       class="primary-link"
-      :to="retry ? safeRedirect(route.query.redirect) : '/admin/articles'"
-      >{{ retry ? "重新连接" : "返回文章管理" }}</RouterLink
-    ><RouterLink to="/login">切换账号</RouterLink>
+      :to="
+        retry
+          ? safeRedirect(route.query.redirect)
+          : code === '404'
+            ? '/'
+            : '/admin/articles'
+      "
+      >{{
+        retry ? "重新连接" : code === "404" ? "返回首页" : "返回文章管理"
+      }}</RouterLink
+    ><RouterLink v-if="code !== '404'" to="/login">切换账号</RouterLink>
   </section>
 </template>

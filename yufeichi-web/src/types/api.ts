@@ -80,3 +80,18 @@ export interface UploadResult {
   fileSize: number;
   bizType: string;
 }
+export interface ProjectInput {
+  name: string;
+  description: string;
+  coverUrl: string | null;
+  githubUrl: string | null;
+  demoUrl: string | null;
+  techStack: string;
+  sortOrder: number;
+  status: number;
+}
+export interface Project extends ProjectInput {
+  id: number;
+  createdAt: string;
+  updatedAt: string;
+}

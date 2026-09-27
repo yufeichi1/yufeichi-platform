@@ -40,10 +40,14 @@ export const articleApi = {
   remove: (id: number) =>
     request<void>({ url: `/admin/articles/${id}`, method: "DELETE" }),
 };
-export function uploadImage(file: File, progress: (value: number) => void) {
+export function uploadImage(
+  file: File,
+  progress: (value: number) => void,
+  bizType: "article" | "project" = "article",
+) {
   const data = new FormData();
   data.append("file", file);
-  data.append("bizType", "article");
+  data.append("bizType", bizType);
   return request<UploadResult>({
     url: "/admin/files/upload",
     method: "POST",

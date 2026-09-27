@@ -1,4 +1,4 @@
-// Owns only fresh, disposable Day3 containers; never accepts a development database URL.
+// Owns only fresh, disposable Day3/Day4 containers; never accepts a development database URL.
 import { spawn, execFileSync } from "node:child_process";
 import {
   existsSync,
@@ -210,6 +210,7 @@ try {
     process.execPath,
     [
       join(web, "node_modules/vite/bin/vite.js"),
+      ...(process.env.E2E_PREVIEW === "1" ? ["preview"] : []),
       "--host",
       "127.0.0.1",
       "--port",

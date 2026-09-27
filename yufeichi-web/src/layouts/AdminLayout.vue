@@ -22,6 +22,12 @@ const menus = [
     mark: "02",
   },
   { path: "/admin/tags", name: "标签管理", permission: "tag:list", mark: "03" },
+  {
+    path: "/admin/projects",
+    name: "项目管理",
+    permission: "project:list",
+    mark: "04",
+  },
 ];
 async function logout() {
   if (leaving.value) return;

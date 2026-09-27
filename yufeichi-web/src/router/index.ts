@@ -18,6 +18,26 @@ const router = createRouter({
       path: "/",
       component: FrontLayout,
       children: [
+        {
+          path: "articles",
+          component: () => import("@/views/front/BlogList.vue"),
+        },
+        {
+          path: "articles/:id",
+          component: () => import("@/views/front/ArticleDetail.vue"),
+        },
+        {
+          path: "projects",
+          component: () => import("@/views/front/ProjectList.vue"),
+        },
+        {
+          path: "projects/:id",
+          component: () => import("@/views/front/ProjectDetail.vue"),
+        },
+        {
+          path: "about",
+          component: () => import("@/views/front/AboutView.vue"),
+        },
         { path: "", component: () => import("@/views/HomeView.vue") },
         { path: "login", component: () => import("@/views/LoginView.vue") },
         {
@@ -56,6 +76,11 @@ const router = createRouter({
       meta: { auth: true },
       children: [
         { path: "", redirect: "/admin/articles" },
+        {
+          path: "projects",
+          component: () => import("@/views/ProjectManage.vue"),
+          meta: { permission: "project:list", title: "项目管理" },
+        },
         {
           path: "articles",
           component: () => import("@/views/ArticleList.vue"),
@@ -105,3 +130,16 @@ router.beforeEach(async (to) => {
   return true;
 });
 export default router;
+router.afterEach((to) => {
+  const title =
+    typeof to.meta.title === "string"
+      ? to.meta.title
+      : {
+          "/": "随笔与创造",
+          "/articles": "文章",
+          "/projects": "项目",
+          "/about": "关于",
+          "/login": "登录",
+        }[to.path] || "随笔与创造";
+  document.title = `${title} · Yufeichi`;
+});
