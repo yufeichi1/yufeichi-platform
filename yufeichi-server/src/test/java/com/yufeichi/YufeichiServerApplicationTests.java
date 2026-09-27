@@ -50,6 +50,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @Testcontainers
 class YufeichiServerApplicationTests {
 
+    @org.junit.jupiter.api.io.TempDir static java.nio.file.Path uploadRoot;
+
     @AfterAll
     static void closeClientsBeforeContainers(@Autowired LettuceConnectionFactory connectionFactory) {
         connectionFactory.stop();
@@ -68,6 +70,7 @@ class YufeichiServerApplicationTests {
 
     @DynamicPropertySource
     static void isolatedServices(DynamicPropertyRegistry registry) {
+        registry.add("file.upload-path", () -> uploadRoot.toString());
         registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
         registry.add("spring.datasource.username", MYSQL::getUsername);
         registry.add("spring.datasource.password", MYSQL::getPassword);

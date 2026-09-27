@@ -1,11 +1,14 @@
 # Yufeichi Platform
 
-基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成范围是 **Day1 认证和构建基线**，尚未完成内容网站或生产部署。
+基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成范围是 **Day1 认证和构建基线 + Day2 核心内容 API 与图片上传**，尚未完成内容网站或生产部署。
 
 ## 已实现
 
 - 后端：Spring Boot 3.5.16、Spring Security、JWT、MyBatis-Plus、Flyway V1—V9。
-- 实际接口：`GET /api/health`、`POST /api/auth/login`、`GET /api/auth/me`、`POST /api/auth/logout`。
+- 基础接口：`GET /api/health`、`POST /api/auth/login`、`GET /api/auth/me`、`POST /api/auth/logout`。
+- 内容 API：分类/标签维护、文章草稿/发布/下架、项目展示/隐藏；后台写接口均检查对应权限，公开查询过滤非公开内容。
+- 图片 API：`POST /api/admin/files/upload`，接收 JPEG/PNG/WebP；解码规范化、UUID 文件名、5MB/像素限制、数据库事务失败清理文件，`/uploads/**` 公开读取。
+- 详细端点、请求字段和行为约定见 [Day2 API 说明](docs/api/Day2-核心API与上传.md)。
 - 登录查询用户、角色、权限；每次携带 Token 时重新检查账户。禁用、删除账户的旧 Token 返回 401；数据库故障返回 500。
 - 统一 `Result`：成功 `code=0`；错误同时返回正确的 HTTP 状态，不再用 HTTP 200 包装所有错误。
 - OpenAPI：`/v3/api-docs`；Knife4j 静态界面：`/doc.html`；Swagger UI：`/swagger-ui/index.html`。
@@ -15,7 +18,6 @@
 
 ## 规划，尚未实现
 
-- Day2：文章、分类、标签、项目和图片上传业务接口。
 - Day3—Day4：前台和后台页面、路由、登录状态恢复、内容管理闭环。
 - Day5：Redis 登录限流、退出撤销、生产配置模板和权限完整回归。
 - Day6—Day7：真实生产部署、备份恢复、回滚及交付。
@@ -64,6 +66,7 @@ docker compose -f deploy/docker-compose.yml up -d
 | `JWT_SECRET` | 至少 32 个 UTF-8 字节 | 配置内公开的开发值，仅本地使用 |
 | `JWT_EXPIRE_MINUTES` | Token 有效分钟数 | `1440` |
 | `SPRING_PROFILES_ACTIVE` | Spring profile | `dev` |
+| `UPLOAD_PATH` | 图片持久化目录，Java 进程必须可写 | `D:/yufeichi/uploads`（dev） |
 
 dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器初始化，后端不得使用 root 账户连接。启动前在当前终端设置与已有容器一致的 `DB_USERNAME`、`DB_PASSWORD`、`REDIS_PASSWORD` 和本地 `JWT_SECRET`，再执行：
 
@@ -73,7 +76,7 @@ dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器
 
 默认地址 `http://localhost:8080`。V2 的 `admin` 初始账户仅限本地首次开发使用；本次验收只使用临时测试库的种子账户，没有修改开发库账号。
 
-## 完整 Day1 验收
+## 完整后端验收（Day1 + Day2）
 
 ```powershell
 .\scripts\mvn21.ps1 clean verify
@@ -81,7 +84,7 @@ dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器
 
 必须先启动 Docker，并能够取得测试依赖镜像。`YufeichiServerApplicationTests` 显式指定启动类并强制 test profile，启动独立 `mysql:8.4`、`redis:7` 容器和随机宿主机端口，数据库为 `yufeichi_test`。动态属性来自这些容器，不使用 dev/prod 的连接；test 配置没有开发连接回退。容器结束时自动停止，V1—V9 仅在空的测试库正常迁移。
 
-验收包括真实 HTTP 登录、错误密码、空 JSON、无 Token、过期/篡改/非法 Token、禁用/删除账户旧 Token、正常 `/me`、OpenAPI，以及 MySQL 默认 SQL 模式下权限去重和排序。单元测试验证基础设施故障 500 与 400/401/403/404/409/413/429/500 映射。
+验收包括 Day1 认证和 OpenAPI 回归，以及 Day2 分类/标签冲突、文章与标签事务回滚、公开可见性、项目 CRUD、逐端点权限、图片格式/大小/像素/路径验证、落盘补偿和真实应用重新启动后的图片访问。Day2 使用独立 `day2_test` 数据库和临时上传目录，不写入开发库或开发上传目录。
 
 本次机器访问 Docker Hub 出现 TLS EOF，不能下载 Ryuk 清理辅助镜像。仅本次本地执行临时设置以下进程环境变量，使用已缓存的 MySQL/Redis 镜像；所有业务测试仍执行，JUnit 容器生命周期负责正常结束时回收，执行后已检查没有测试容器遗留：
 
@@ -113,3 +116,16 @@ V1—V9 保持不变。公开服务前通过后续增量迁移禁用固定种子
 2026-09-27 公开网络检查：`yufeichi.com` 与 `www.yufeichi.com` 均解析至 `122.51.218.155`，HTTPS 返回 200，TLS 域名及信任校验通过，证书到期时间为 2026-12-24。随后经授权SSH只读检查：sudo可用；站点目录为 `/var/www/yufeichi`，配置为 `/etc/nginx/sites-available/yufeichi`；Certbot续期定时器已启用且最近执行成功。当前仅有静态站点，未配置后端API代理。用户确认项目尚未备份，检查范围内亦未发现项目备份，备份建立与恢复验证仍是Day6/Day7待办。
 
 详细修改、命令、验证结果及边界见 [Day1 执行与验收报告](docs/Day1-执行与验收报告.md)。
+
+## Day2 使用约定
+
+- 文章始终以草稿创建，`authorId` 取登录用户；修改正文不接受客户端直接设置作者、状态或浏览量。发布/下架需要 `article:publish`。
+- PUT 完整替换可编辑字段；清空分类、封面、简介和链接时提交 null；标签传空数组清空关系。分页默认1/10，上限100；排序固定，客户端不能拼入排序SQL。
+- 分类/标签被未删除文章引用时删除返回409。逻辑删除不释放name/slug唯一值；重复使用仍返回409。
+- 项目默认隐藏；公开列表和详情只显示status=1；文章公开接口只显示status=1。未公开ID与不存在ID都返回404。
+- 上传业务目录仅avatar/article/project/other；单文件及规范化后结果最大5MiB、最长边8192、最多1600万像素。JPEG保存为JPEG；PNG/WebP解码重编码为PNG，剥离元数据及尾随内容；动画仅保留首帧。
+- multipart文件上限5MB，请求上限6MB；Tomcat丢弃已拒绝请求体的上限8MB，以便常见超限请求返回完整413，极大请求仍可能被服务器断开。
+- 图片返回相对fileUrl，不返回磁盘路径。配置UPLOAD_PATH可持久保存，生产迁移时须同步备份该目录；本轮没有部署服务器。
+- 当前不提供文件删除、文件管理后台或前端页面；Markdown安全渲染与页面联调属于Day3/Day4。应用崩溃或磁盘清理失败不具备分布式事务保证，部署前仍需备份及孤儿文件运维策略。
+
+Day2 验收记录见 [Day2 执行与验收报告](docs/Day2-执行与验收报告.md)。
