@@ -31,6 +31,7 @@
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <jwt.version>0.12.6</jwt.version>
         <knife4j.version>4.5.0</knife4j.version>
+        <springdoc.version>2.8.17</springdoc.version>
     </properties>
 
 
@@ -131,11 +132,16 @@
         </dependency>
 
 
-        <!-- Knife4j 接口文档 -->
+        <!-- Keep Knife4j's static UI; its 4.5.0 starter calls removed springdoc APIs. -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-ui</artifactId>
             <version>${knife4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
 
@@ -170,6 +176,18 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Real MySQL/Redis in disposable, isolated containers; never a dev DB. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 
@@ -178,6 +196,46 @@
     <build>
 
         <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <id>require-java-21</id>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[21,22)</version>
+                                    <message>Yufeichi requires JDK 21. Use scripts/mvn21.ps1 or JAVA_HOME pointing to JDK 21.</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>21</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.springframework.boot</groupId>
+                            <artifactId>spring-boot-configuration-processor</artifactId>
+                            <version>${project.parent.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
 
             <!-- Spring Boot打包插件 -->
             <plugin>

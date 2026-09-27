@@ -53,9 +53,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 
-# Knife4j接口文档
-knife4j:
-  enable: true
+# Knife4j 静态 UI 位于 /doc.html，由下方 springdoc 提供 OpenAPI。
 
 
 # OpenAPI接口文档
