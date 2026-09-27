@@ -16,7 +16,7 @@ public interface UserMapper extends BaseMapper<User> {
             WHERE ur.user_id = #{userId}
               AND r.status = 1
               AND r.deleted = 0
-            ORDER BY r.sort_order, r.id
+            ORDER BY r.role_code
             """)
     List<String> selectRoleCodesByUserId(@Param("userId") Long userId);
 
@@ -34,7 +34,7 @@ public interface UserMapper extends BaseMapper<User> {
               AND r.deleted = 0
               AND p.status = 1
               AND p.deleted = 0
-            ORDER BY p.sort_order, p.id
+            ORDER BY p.permission_code
             """)
     List<String> selectPermissionCodesByUserId(
             @Param("userId") Long userId

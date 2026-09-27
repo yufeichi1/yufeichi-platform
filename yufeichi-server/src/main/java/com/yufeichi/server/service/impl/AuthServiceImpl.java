@@ -11,6 +11,7 @@ import com.yufeichi.server.vo.LoginVO;
 import com.yufeichi.server.vo.UserInfoVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -53,6 +54,9 @@ public class AuthServiceImpl implements AuthService {
                     .userInfo(toUserInfoVO(loginUser))
                     .permissions(loginUser.getPermissions())
                     .build();
+        } catch (AuthenticationServiceException exception) {
+            // Database/provider failures are server errors, not invalid passwords.
+            throw exception;
         } catch (DisabledException exception) {
             throw new BusinessException(ErrorCode.USER_DISABLED);
         } catch (AuthenticationException exception) {

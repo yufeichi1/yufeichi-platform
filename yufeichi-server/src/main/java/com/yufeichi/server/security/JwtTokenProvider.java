@@ -30,6 +30,9 @@ public class JwtTokenProvider {
                     "jwt.secret 至少需要 32 个 UTF-8 字节"
             );
         }
+        if (expireMinutes <= 0 || expireMinutes > Long.MAX_VALUE / 60_000L) {
+            throw new IllegalArgumentException("jwt.expire-minutes 必须是有效的正数");
+        }
 
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
         this.jwtParser = Jwts.parser()
@@ -55,7 +58,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            parseClaims(token);
+            getUserId(token);
             return true;
         } catch (JwtException | IllegalArgumentException exception) {
             return false;
@@ -63,7 +66,13 @@ public class JwtTokenProvider {
     }
 
     public Long getUserId(String token) {
-        return Long.valueOf(parseClaims(token).getSubject());
+        Claims claims = parseClaims(token);
+        String subject = claims.getSubject();
+        if (claims.getExpiration() == null || subject == null
+                || !subject.matches("[1-9][0-9]*")) {
+            throw new IllegalArgumentException("Token 缺少有效的用户 ID 或过期时间");
+        }
+        return Long.valueOf(subject);
     }
 
     public String getUsername(String token) {
