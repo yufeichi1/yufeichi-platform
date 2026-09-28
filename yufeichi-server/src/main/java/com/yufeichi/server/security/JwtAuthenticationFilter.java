@@ -36,7 +36,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final CustomUserDetailsService userDetailsService;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final ObjectMapper objectMapper;
+    private final RedisSecurityStore securityStore;
     private final AccountStatusUserDetailsChecker accountChecker = new AccountStatusUserDetailsChecker();
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path=request.getServletPath();
+        // Public reading is deliberately independent of Redis and ignores optional Bearer headers.
+        return "OPTIONS".equals(request.getMethod()) || path.equals("/api/auth/login") || path.equals("/api/health")
+                || ("GET".equals(request.getMethod()) && java.util.List.of("/api/articles","/api/projects","/api/categories","/api/tags","/uploads")
+                    .stream().anyMatch(prefix -> path.equals(prefix)||path.startsWith(prefix+"/")));
+    }
 
     @Override
     protected void doFilterInternal(
@@ -49,6 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token != null) {
                 // Parse and verify once. Account checks also apply to previously issued tokens.
                 Long userId = jwtTokenProvider.getUserId(token);
+                if(securityStore.isRevoked(token)) throw new BadCredentialsException("Revoked authentication");
                 LoginUser loginUser = userDetailsService.loadUserById(userId);
                 accountChecker.check(loginUser);
                 var authentication = new UsernamePasswordAuthenticationToken(
@@ -56,9 +67,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+        } catch (SecurityUnavailableException exception) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(503);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getWriter(), Result.error(ErrorCode.SERVICE_UNAVAILABLE));
+            return;
         } catch (DataAccessException | AuthenticationServiceException exception) {
             SecurityContextHolder.clearContext();
-            log.error("Authentication infrastructure failure", exception);
+            log.error("Authentication infrastructure failure type={}", exception.getClass().getSimpleName());
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);

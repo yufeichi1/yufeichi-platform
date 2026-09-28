@@ -7,6 +7,7 @@ spring:
 
 
 server:
+  forward-headers-strategy: none
   port: 8080
   tomcat:
     # Drain a bounded rejected multipart body so clients receive the JSON 413 response.

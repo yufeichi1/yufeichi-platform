@@ -81,6 +81,7 @@ public class ArticleService {
     }
 
     @Transactional
+    @com.yufeichi.server.security.AuditAction("article.publish-state")
     public ArticleVO publish(long id, boolean publish) {
         Article article=lock(id);
         article.setStatus(publish ? 1 : 2);
@@ -91,6 +92,7 @@ public class ArticleService {
     }
 
     @Transactional
+    @com.yufeichi.server.security.AuditAction("article.delete")
     public void delete(long id) {
         lock(id);
         relations.delete(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId,id));

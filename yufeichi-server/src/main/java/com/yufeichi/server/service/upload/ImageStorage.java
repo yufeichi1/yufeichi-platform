@@ -35,6 +35,10 @@ public class ImageStorage {
         int dot=name.lastIndexOf('.');
         String ext=dot<0 ? "" : name.substring(dot+1).toLowerCase(Locale.ROOT);
         String expected=switch(ext) { case "jpg","jpeg" -> "jpeg"; case "png" -> "png"; case "webp" -> "webp"; default -> throw invalid("仅支持JPEG、PNG和WebP图片"); };
+        String declared=file.getContentType();
+        if(declared!=null && !declared.isBlank() && !declared.equalsIgnoreCase("application/octet-stream")
+                && !declared.equalsIgnoreCase("image/"+expected))
+            throw invalid("图片MIME与扩展名不一致");
         BufferedImage decoded;
         try(InputStream input=file.getInputStream()) {
             byte[] bytes=input.readNBytes((int)MAX_BYTES+1);

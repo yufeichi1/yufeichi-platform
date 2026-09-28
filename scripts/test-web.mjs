@@ -188,7 +188,7 @@ try {
     "isolated backend",
   );
   const sql =
-    "INSERT INTO sys_user(id,username,password,status) SELECT 100,'day3-reader',password,1 FROM sys_user WHERE id=1; INSERT INTO sys_role(id,role_code,role_name,status) VALUES(100,'day3_reader','Reader',1); INSERT INTO sys_user_role(user_id,role_id) VALUES(100,100); INSERT INTO sys_role_permission(role_id,permission_id) SELECT 100,id FROM sys_permission WHERE permission_code IN ('article:list','category:list','tag:list');";
+    "UPDATE sys_user SET status=1 WHERE id=1; INSERT INTO sys_user(id,username,password,status) SELECT 100,'day3-reader',password,1 FROM sys_user WHERE id=1; INSERT INTO sys_role(id,role_code,role_name,status) VALUES(100,'day3_reader','Reader',1); INSERT INTO sys_user_role(user_id,role_id) VALUES(100,100); INSERT INTO sys_role_permission(role_id,permission_id) SELECT 100,id FROM sys_permission WHERE permission_code IN ('article:list','category:list','tag:list');";
   docker(
     "exec",
     "-e",

@@ -22,7 +22,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
   
   servlet:
     multipart:
@@ -38,8 +40,8 @@ mybatis-plus:
     # 数据库字段 user_name 自动映射 Java userName
     map-underscore-to-camel-case: true
 
-    # 开发环境打印SQL
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 默认关闭 SQL 日志，避免记录凭据和正文
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
   global-config:
     db-config:
@@ -71,7 +73,7 @@ jwt:
   secret: ${JWT_SECRET:yufeichi-dev-secret-key-change-this-at-least-32-chars}
 
   # Token有效时间（分钟）
-  expire-minutes: ${JWT_EXPIRE_MINUTES:1440}
+  expire-minutes: ${JWT_EXPIRE_MINUTES:45}
 
 
 # 文件上传
@@ -85,4 +87,4 @@ file:
 # 日志配置
 logging:
   level:
-    com.yufeichi.server: debug
+    com.yufeichi.server: info

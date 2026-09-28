@@ -35,6 +35,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final org.springframework.core.env.Environment environment;
 
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration() {
@@ -66,6 +67,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize ->
                         authorize
+                                .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                                .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                    !environment.acceptsProfiles(org.springframework.core.env.Profiles.of("prod"))))
                                 .requestMatchers(
                                         "/api/auth/login",
                                         "/api/health",
@@ -117,7 +121,8 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(List.of(
+        configuration.setAllowedOriginPatterns(environment.acceptsProfiles(org.springframework.core.env.Profiles.of("prod"))
+                ? List.of("https://yufeichi.com", "https://www.yufeichi.com") : List.of(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "https://yufeichi.com",

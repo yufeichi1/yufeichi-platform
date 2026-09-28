@@ -45,11 +45,13 @@ public class ProjectService {
         return view(p);
     }
     @Transactional
+    @com.yufeichi.server.security.AuditAction("project.visibility")
     public ProjectVO status(long id,int status) {
         Project p=lock(id); p.setStatus(status); p.setUpdatedAt(LocalDateTime.now()); projects.updateById(p);
         return view(p);
     }
     @Transactional
+    @com.yufeichi.server.security.AuditAction("project.delete")
     public void delete(long id) { lock(id); projects.deleteById(id); }
     private Project lock(long id) {
         Project p=projects.selectForUpdate(id);

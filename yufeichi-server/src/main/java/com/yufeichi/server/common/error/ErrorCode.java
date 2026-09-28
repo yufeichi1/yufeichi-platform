@@ -21,6 +21,7 @@ public enum ErrorCode {
     TOO_MANY_REQUESTS(42900, "请求过于频繁", HttpStatus.TOO_MANY_REQUESTS),
 
     SYSTEM_ERROR(50000, "系统内部错误", HttpStatus.INTERNAL_SERVER_ERROR),
+    SERVICE_UNAVAILABLE(50300, "认证服务暂不可用，请稍后重试", HttpStatus.SERVICE_UNAVAILABLE),
     USERNAME_OR_PASSWORD_ERROR(50001, "用户名或密码错误", HttpStatus.UNAUTHORIZED),
     USER_DISABLED(50002, "用户已被禁用", HttpStatus.UNAUTHORIZED),
 

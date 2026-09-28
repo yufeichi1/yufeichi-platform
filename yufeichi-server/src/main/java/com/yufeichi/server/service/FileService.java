@@ -24,6 +24,7 @@ public class FileService {
     private final ImageStorage storage;
 
     @Transactional(rollbackFor=Exception.class)
+    @com.yufeichi.server.security.AuditAction("file.upload")
     public FileVO upload(FileUploadRequest request) throws IOException {
         long uploaderId=CurrentUser.id();
         UploadBizType type=UploadBizType.parse(request.getBizType());

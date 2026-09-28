@@ -1,17 +1,17 @@
 # Yufeichi Platform
 
-基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成 **Day1—Day4：认证和构建基线、核心内容 API 与图片上传、文章与项目后台、公开博客与项目展示页面**。生产部署尚未完成。
+基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成 **Day1—Day5：认证和构建基线、核心内容 API 与图片上传、文章与项目后台、公开网站、安全与发布候选**。生产部署尚未完成。
 
 ## 已实现
 
-- 后端：Spring Boot 3.5.16、Spring Security、JWT、MyBatis-Plus、Flyway V1—V9。
+- 后端：Spring Boot 3.5.16、Spring Security、JWT、MyBatis-Plus、Flyway V1—V10（V1—V9 未修改）。
 - 基础接口：`GET /api/health`、`POST /api/auth/login`、`GET /api/auth/me`、`POST /api/auth/logout`。
 - 内容 API：分类/标签维护、文章草稿/发布/下架、项目展示/隐藏；后台写接口均检查对应权限，公开查询过滤非公开内容。
 - 图片 API：`POST /api/admin/files/upload`，接收 JPEG/PNG/WebP；解码规范化、UUID 文件名、5MB/像素限制、数据库事务失败清理文件，`/uploads/**` 公开读取。
 - 详细端点、请求字段和行为约定见 [Day2 API 说明](docs/api/Day2-核心API与上传.md)。
-- 登录查询用户、角色、权限；每次携带 Token 时重新检查账户。禁用、删除账户的旧 Token 返回 401；数据库故障返回 500。
+- 登录查询用户、角色、权限；受保护接口重新检查 Token 和账户。禁用、删除账户及退出后的旧 Token 返回 401；数据库故障返回 500，Redis 认证故障返回 503。公开 GET 阅读忽略可选 Token，不依赖 Redis。
 - 统一 `Result`：成功 `code=0`；错误同时返回正确的 HTTP 状态，不再用 HTTP 200 包装所有错误。
-- OpenAPI：`/v3/api-docs`；Knife4j 静态界面：`/doc.html`；Swagger UI：`/swagger-ui/index.html`。
+- 开发 OpenAPI：`/v3/api-docs`；Knife4j：`/doc.html`；Swagger UI：`/swagger-ui/index.html`。prod 禁用并拒绝文档访问。
 - 独立 test profile、真实 MySQL 8.4/Redis 7 容器测试、认证和异常回归测试。
 - 后台网页：登录与刷新恢复、权限菜单、文章分页/编辑/草稿/发布/下架/删除、分类标签维护、封面上传与失败重试。
 - 项目后台：新增、修改、删除、排序、展示/隐藏、独立 project 目录封面上传。
@@ -19,11 +19,10 @@
 - Markdown：关闭原生 HTML，DOMPurify 白名单净化；安全外链，站内上传图片，长代码可横向滚动。
 - 网页验收：Playwright 通过真实 Vite 代理连接独立 Java 21/MySQL 8.4/Redis 7 环境；支持完整业务闭环、401/403 和失败恢复检查。
 
-`logout` 当前只清理本次请求的认证上下文，前端退出时删除本地 Token；服务端 Token 撤销属于 Day5。登录与 `/me` 均返回基本信息、roles 和 permissions。429 已有错误映射，登录限流尚未实现。
+登录与 `/me` 均返回基本信息、roles 和 permissions。Token 默认 45 分钟，无 Refresh Token；退出在 Redis 保存 SHA-256 撤销记录至原到期时间。登录失败按归一化账号和可信来源 IP 原子计数（10 分钟内账号 5 次/IP 20 次，超限 429）。退出撤销失败时前端保留会话并允许重试。V10 禁用公开默认管理员，新账号通过一次性离线 bootstrap 初始化；审计记录登录、发布、删除、上传结果，不记录秘密或正文。
 
 ## 规划，尚未实现
 
-- Day5：Redis 登录限流、退出撤销、生产配置模板和权限完整回归。
 - Day6—Day7：真实生产部署、备份恢复、回滚及交付。
 - 留言、评论、完整日志管理等后续能力。
 
@@ -68,7 +67,7 @@ docker compose -f deploy/docker-compose.yml up -d
 | `REDIS_PORT` | Redis 端口 | `6379` |
 | `REDIS_PASSWORD` | 与 Compose 同名变量对应 | `yufeichi` |
 | `JWT_SECRET` | 至少 32 个 UTF-8 字节 | 配置内公开的开发值，仅本地使用 |
-| `JWT_EXPIRE_MINUTES` | Token 有效分钟数 | `1440` |
+| `JWT_EXPIRE_MINUTES` | Token 有效分钟数，只允许 30–60 | `45` |
 | `SPRING_PROFILES_ACTIVE` | Spring profile | `dev` |
 | `UPLOAD_PATH` | 图片持久化目录，Java 进程必须可写 | `D:/yufeichi/uploads`（dev） |
 
@@ -78,15 +77,15 @@ dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器
 .\scripts\mvn21.ps1 spring-boot:run
 ```
 
-默认地址 `http://localhost:8080`。V2 的 `admin` 初始账户仅限本地首次开发使用；本次验收只使用临时测试库的种子账户，没有修改开发库账号。
+默认地址 `http://localhost:8080`。V10 会禁用 V2 的公开 `admin` 种子。首次初始化新账号请按 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md) 的离线流程操作（也适用于自己的本地库）；不要用测试夹具启用真实环境的种子。本轮未连接或修改开发/生产数据库，迁移和新账号只在独立测试库验证。
 
-## 完整后端验收（Day1—Day4）
+## 完整后端验收（Day1—Day5）
 
 ```powershell
 .\scripts\mvn21.ps1 clean verify
 ```
 
-必须先启动 Docker，并能够取得测试依赖镜像。`YufeichiServerApplicationTests` 显式指定启动类并强制 test profile，启动独立 `mysql:8.4`、`redis:7` 容器和随机宿主机端口，数据库为 `yufeichi_test`。动态属性来自这些容器，不使用 dev/prod 的连接；test 配置没有开发连接回退。容器结束时自动停止，V1—V9 仅在空的测试库正常迁移。
+必须先启动 Docker，并能够取得测试依赖镜像。`YufeichiServerApplicationTests` 显式指定启动类并强制 test profile，启动独立 `mysql:8.4`、`redis:7` 容器和随机宿主机端口，数据库为 `yufeichi_test`。动态属性来自这些容器，不使用开发/生产连接；test 配置没有开发连接回退。容器结束时自动停止，V1—V10 仅在空的测试库正常迁移。历史业务测试只在自己的容器库中重新启用种子；`Day5IntegrationTests` 保持种子禁用，验证真实离线初始化和 prod 启动。
 
 验收包括 Day1 认证和 OpenAPI 回归，以及 Day2 分类/标签冲突、文章与标签事务回滚、公开可见性、项目 CRUD、逐端点权限、图片格式/大小/像素/路径验证、落盘补偿和真实应用重新启动后的图片访问。Day2 使用独立 `day2_test` 数据库和临时上传目录，不写入开发库或开发上传目录。
 
@@ -111,11 +110,11 @@ yufeichi-server/target/yufeichi-server-0.0.1-SNAPSHOT.jar
 
 `.jar.original` 是重打包前产物。部署脚本不得假定文件名是 `yufeichi-server.jar`。用 **Java 21** 运行可执行 JAR，运行前注入相应 profile 和环境变量；当前默认 dev，不能直接视为生产配置。
 
-## Day1 明确的生产准备方案
+## 生产准备（Day5 模板已实现，Day6 待部署）
 
-Day5 补生产模板，Day6 落地：显式启用 prod；DB/Redis/JWT 秘密从受保护的外置环境文件注入，缺失即启动失败；非 root 服务账户、回环监听、关闭 API 文档和 SQL 明细日志。Compose 与 Java 进程分别注入各自变量。
+已提供 JAR 内的无秘密 `application-prod.yml` 和 [backend.env 模板](deploy/backend.env.example)，显式启用 prod；DB/Redis/JWT 秘密从受保护外置环境文件注入，缺失启动失败，回环监听、关闭文档和 SQL 日志。生产的 JWT 密钥至少 64 字节，DB_NAME 必填，不能使用 root 数据库账号。Compose 与 Java 进程分别注入变量，非 root 服务账户和线上持久化由 Day6 落地。
 
-V1—V9 保持不变。公开服务前通过后续增量迁移禁用固定种子账号，并使用一次性受保护 bootstrap 凭据初始化真实管理员，完成后移除 bootstrap 凭据。此处只明确方案，没有提前实现 Day5/Day6 功能。
+V1—V9 保持不变，新增 V10 禁用固定种子；上线前必须完成一次性离线 bootstrap，移除初始化凭据，再启动生产服务。具体步骤、环境变量、可信代理和 Redis 持久化边界见 [Day5 生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。未初始化或重新启用种子的生产库不能启动应用。
 
 2026-09-27 公开网络检查：`yufeichi.com` 与 `www.yufeichi.com` 均解析至 `122.51.218.155`，HTTPS 返回 200，TLS 域名及信任校验通过，证书到期时间为 2026-12-24。随后经授权SSH只读检查：sudo可用；站点目录为 `/var/www/yufeichi`，配置为 `/etc/nginx/sites-available/yufeichi`；Certbot续期定时器已启用且最近执行成功。当前仅有静态站点，未配置后端API代理。用户确认项目尚未备份，检查范围内亦未发现项目备份，备份建立与恢复验证仍是Day6/Day7待办。
 
@@ -179,3 +178,7 @@ Day3 验收记录见 [Day3 执行与验收报告](docs/Day3-执行与验收报�
 `node scripts/test-web.mjs` 现在同时执行 Day3 + Day4 浏览器用例，仍使用原脚本创建的独立 `day3_test` 测试库和随机凭据。项目业务闭环通过真实网页操作；分页与恶意 Markdown 数据通过独立测试 API 建立。故障负例使用请求拦截模拟，主流程连接真实后端。
 
 构建后设置 `$env:E2E_PREVIEW = '1'` 再运行相同脚本，可以针对 dist 生产产物完成浏览器验收。运行结束后移除该环境变量。Nginx 的 SPA fallback、API 前缀、图片与静态资源处理见 [前端构建与 Nginx 路由说明](deploy/Day4-前端构建与Nginx路由说明.md)。本轮没有操作线上 Nginx，实际部署仍属于 Day6。
+
+## Day5 安全验收
+
+完整记录见 [Day5 执行与验收报告](docs/Day5-执行与验收报告.md)：后端 97 项测试无跳过，前端生产构建通过，dist 浏览器 12 项通过。覆盖 Redis 真实故障、退出撤销、限流并发与过期、一次性初始化、生产文档关闭、逐端点权限与敏感日志负例。初始化操作和环境映射见 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。实际线上部署尚未执行。

@@ -46,12 +46,14 @@ export const useUserStore = defineStore("user", () => {
     return restoring;
   }
   async function logout() {
-    clearDrafts();
     try {
       await request<void>({ url: "/auth/logout", method: "POST" });
-    } finally {
-      clear();
+    } catch (error: unknown) {
+      // An unavailable revocation store did not invalidate this session. Keep it for retry.
+      if (!(error instanceof ApiError && error.status === 401)) throw error;
     }
+    clearDrafts();
+    clear();
   }
   return { user, clear, hasPermission, login, restore, logout };
 });

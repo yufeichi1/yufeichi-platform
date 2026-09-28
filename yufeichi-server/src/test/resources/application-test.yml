@@ -10,6 +10,8 @@ spring:
       host: ${TEST_REDIS_HOST}
       port: ${TEST_REDIS_PORT}
       password: ${TEST_REDIS_PASSWORD}
+      timeout: 2s
+      connect-timeout: 2s
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -33,7 +35,7 @@ mybatis-plus:
 
 jwt:
   secret: day1-test-only-secret-never-use-in-production-0123456789
-  expire-minutes: 15
+  expire-minutes: 45
 
 springdoc:
   api-docs:

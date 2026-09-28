@@ -77,6 +77,7 @@ class Day2IntegrationTests {
     @BeforeEach void accounts() {
         if (admin != null) return;
         assertThat(jdbc.queryForObject("SELECT DATABASE()",String.class)).isEqualTo("day2_test");
+        jdbc.update("UPDATE sys_user SET status=1 WHERE id=1");
         admin=login("admin","Admin@123456");
         jdbc.update("INSERT INTO sys_user(id,username,password,status) VALUES(100,'day2-reader',?,1)",passwords.encode("reader-test-password"));
         jdbc.update("INSERT INTO sys_role(id,role_code,role_name,status) VALUES(100,'day2_reader','Reader',1)");
@@ -131,6 +132,7 @@ class Day2IntegrationTests {
         status(call(HttpMethod.DELETE,"/api/admin/tags/"+tag,null,admin),200);
         status(call(HttpMethod.DELETE,"/api/admin/articles/"+id,null,admin),200);
         status(call(HttpMethod.GET,"/api/admin/articles/"+id,null,admin),404);
+        status(call(HttpMethod.GET,"/api/articles/"+id,null,null),404);
         assertThat(jdbc.queryForObject("SELECT deleted FROM blog_article WHERE id=?",Integer.class,id)).isEqualTo(1);
     }
 
@@ -171,12 +173,17 @@ class Day2IntegrationTests {
             status(call(HttpMethod.GET,"/api/admin/"+type,null,null),401);
             status(call(HttpMethod.GET,"/api/admin/"+type,null,reader),200);
             Object body=type.equals("articles") ? articleBody(null,List.of()) : Map.of("name","valid","slug","valid");
+            status(call(HttpMethod.POST,"/api/admin/"+type,body,null),401);
+            status(call(HttpMethod.PUT,"/api/admin/"+type+"/99999",body,null),401);
+            status(call(HttpMethod.DELETE,"/api/admin/"+type+"/99999",null,null),401);
             status(call(HttpMethod.POST,"/api/admin/"+type,body,reader),403);
             status(call(HttpMethod.PUT,"/api/admin/"+type+"/99999",body,reader),403);
             status(call(HttpMethod.DELETE,"/api/admin/"+type+"/99999",null,reader),403);
         }
         status(call(HttpMethod.POST,"/api/admin/articles/99999/publish",null,reader),403);
         status(call(HttpMethod.POST,"/api/admin/articles/99999/unpublish",null,reader),403);
+        status(call(HttpMethod.POST,"/api/admin/articles/99999/publish",null,null),401);
+        status(call(HttpMethod.POST,"/api/admin/articles/99999/unpublish",null,null),401);
     }
 
     @Test void projectCrudAndHiddenVisibility() {
@@ -196,6 +203,7 @@ class Day2IntegrationTests {
         status(call(HttpMethod.GET,"/api/projects/"+id,null,null),404);
         status(call(HttpMethod.DELETE,"/api/admin/projects/"+id,null,admin),200);
         status(call(HttpMethod.GET,"/api/admin/projects/"+id,null,admin),404);
+        status(call(HttpMethod.GET,"/api/projects/"+id,null,null),404);
         assertThat(jdbc.queryForObject("SELECT deleted FROM project WHERE id=?",Integer.class,id)).isEqualTo(1);
     }
 
@@ -207,6 +215,10 @@ class Day2IntegrationTests {
         status(call(HttpMethod.PUT,"/api/admin/projects/1",body,reader),403);
         status(call(HttpMethod.PUT,"/api/admin/projects/1/status",Map.of("status",1),reader),403);
         status(call(HttpMethod.DELETE,"/api/admin/projects/1",null,reader),403);
+        status(call(HttpMethod.POST,"/api/admin/projects",body,null),401);
+        status(call(HttpMethod.PUT,"/api/admin/projects/1",body,null),401);
+        status(call(HttpMethod.PUT,"/api/admin/projects/1/status",Map.of("status",1),null),401);
+        status(call(HttpMethod.DELETE,"/api/admin/projects/1",null,null),401);
         status(call(HttpMethod.GET,"/api/projects?pageSize=101",null,null),400);
         status(call(HttpMethod.GET,"/api/projects?status=2",null,null),400);
         status(call(HttpMethod.POST,"/api/admin/projects",Map.of("name","valid","description","valid","demoUrl","javascript:alert(1)"),admin),400);
@@ -311,6 +323,26 @@ class Day2IntegrationTests {
         var headers=new HttpHeaders(); headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         if(token!=null) headers.setBearerAuth(token);
         return http.exchange("/api/admin/files/upload",HttpMethod.POST,new HttpEntity<>(body,headers),JsonNode.class);
+    }
+
+    @Test void auditRecordsLoginPublishDeleteUploadWithoutCredentialsOrBodies() throws Exception {
+        var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        var events=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        events.start(); logger.addAppender(events);
+        try {
+            String token=login("admin","Admin@123456");
+            var body=articleBody(null,List.of());
+            body.put("content","private-audit-body-never-log");
+            long id=ok(call(HttpMethod.POST,"/api/admin/articles",body,token)).path("id").asLong();
+            status(call(HttpMethod.POST,"/api/admin/articles/"+id+"/publish",null,token),200);
+            status(call(HttpMethod.DELETE,"/api/admin/articles/"+id,null,token),200);
+            ok(upload("private-audit-name.png",image("png"),"other",token));
+            String logs=events.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage)
+                    .collect(java.util.stream.Collectors.joining("\n"));
+            assertThat(logs).contains("audit action=login outcome=success", "audit action=article.publish-state outcome=success",
+                    "audit action=article.delete outcome=success", "audit action=file.upload outcome=success");
+            assertThat(logs).doesNotContain(token,"Authorization","Admin@123456","private-audit-body-never-log","private-audit-name.png");
+        } finally { logger.detachAppender(events); events.stop(); }
     }
 
     @Test void openApiDescribesAuthenticationAndPaginationForDay2() {

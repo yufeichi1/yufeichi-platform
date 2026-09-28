@@ -39,8 +39,8 @@ class JwtAuthenticationFilterTest {
         SecurityContextHolder.clearContext();
         users = mock(CustomUserDetailsService.class);
         chain = mock(FilterChain.class);
-        filter = new JwtAuthenticationFilter(new JwtTokenProvider(SECRET, 15), users,
-                new RestAuthenticationEntryPoint(mapper), mapper);
+        filter = new JwtAuthenticationFilter(new JwtTokenProvider(SECRET, 45), users,
+                new RestAuthenticationEntryPoint(mapper), mapper, mock(RedisSecurityStore.class));
     }
 
     @AfterEach

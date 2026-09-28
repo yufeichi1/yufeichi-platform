@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthenticationServiceException.class)
     public ResponseEntity<Result<Void>> handleAuthenticationServiceException(AuthenticationServiceException exception) {
-        log.error("Authentication infrastructure failure", exception);
+        log.error("Authentication infrastructure failure type={}", exception.getClass().getSimpleName());
         return error(ErrorCode.SYSTEM_ERROR);
     }
 
@@ -95,7 +95,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleException(Exception exception) {
-        log.error("Unhandled server exception", exception);
+        log.error("Unhandled server exception type={}", exception.getClass().getSimpleName());
         return error(ErrorCode.SYSTEM_ERROR);
     }
 

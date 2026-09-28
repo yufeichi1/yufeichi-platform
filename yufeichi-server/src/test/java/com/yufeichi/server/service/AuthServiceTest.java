@@ -17,7 +17,7 @@ class AuthServiceTest {
         var manager = mock(AuthenticationManager.class);
         var failure = new InternalAuthenticationServiceException("test database unavailable");
         when(manager.authenticate(any())).thenThrow(failure);
-        var service = new AuthServiceImpl(manager, mock(JwtTokenProvider.class));
+        var service = new AuthServiceImpl(manager, mock(JwtTokenProvider.class), mock(com.yufeichi.server.security.RedisSecurityStore.class), mock(com.yufeichi.server.security.ClientAddress.class));
         var dto = new LoginDTO();
         dto.setUsername("test-user");
         dto.setPassword("irrelevant");

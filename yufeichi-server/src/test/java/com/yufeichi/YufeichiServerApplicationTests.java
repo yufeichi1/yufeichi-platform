@@ -89,6 +89,14 @@ class YufeichiServerApplicationTests {
     @Autowired TestRestTemplate http;
     @Autowired PasswordEncoder passwords;
 
+    @org.junit.jupiter.api.BeforeEach
+    void isolatedLegacyFixture() {
+        assertThat(jdbc.queryForObject("SELECT DATABASE()", String.class)).isEqualTo("yufeichi_test");
+        jdbc.update("UPDATE sys_user SET status=1 WHERE id=1");
+        var keys = redis.keys("security:*");
+        if (keys != null && !keys.isEmpty()) redis.delete(keys);
+    }
+
     @Test
     void openApiAndKnife4jAreAvailableOverHttp() {
         var response = http.getForEntity("/v3/api-docs", JsonNode.class);
@@ -154,8 +162,8 @@ class YufeichiServerApplicationTests {
             token = String.join(".", parts);
         }
         assertResult(getWithToken("/api/auth/me", token), 401, 40100);
-        // A supplied invalid credential is rejected consistently even on a public endpoint.
-        assertResult(getWithToken("/api/health", token), 401, 40100);
+        // Day5 public health/reading ignores optional credentials and does not depend on Redis.
+        assertResult(getWithToken("/api/health", token), 200, 0);
     }
 
     @Test
@@ -216,12 +224,12 @@ class YufeichiServerApplicationTests {
     void realMysql84Redis7AndAllMigrationChecksumsAreValid() {
         assertThat(jdbc.queryForObject("SELECT VERSION()", String.class)).startsWith("8.4.");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
-        assertThat(flyway.info().applied()).hasSize(9);
+        assertThat(flyway.info().applied()).hasSize(10);
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND checksum IS NOT NULL", Integer.class))
-                .isEqualTo(9);
+                .isEqualTo(10);
         try (var connection = redis.getConnectionFactory().getConnection()) {
             assertThat(connection.ping()).isEqualTo("PONG");
             assertThat(connection.serverCommands().info("server").getProperty("redis_version")).startsWith("7.");

@@ -80,6 +80,7 @@ application-*-local.yml
 
 # 配置模板允许提交
 !application-prod.yml.example
+!yufeichi-server/src/main/resources/application-prod.yml
 
 
 

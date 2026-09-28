@@ -34,11 +34,11 @@ async function logout() {
   leaving.value = true;
   try {
     await user.logout();
+    await router.replace("/login");
   } catch (e: unknown) {
     ElMessage.warning(errorMessage(e));
   } finally {
     leaving.value = false;
-    await router.replace("/login");
   }
 }
 </script>

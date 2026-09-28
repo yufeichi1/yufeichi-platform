@@ -16,6 +16,7 @@ public class LoginDTO {
 
     @NotBlank(message = "密码不能为空")
     @Size(max = 100, message = "密码长度不能超过 100 个字符")
-    @Schema(description = "密码", example = "Admin@123456")
+    @lombok.ToString.Exclude
+    @Schema(description = "密码", accessMode = Schema.AccessMode.WRITE_ONLY)
     private String password;
 }

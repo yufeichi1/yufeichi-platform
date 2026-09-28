@@ -1,0 +1,54 @@
+# Packaged template: secrets have no defaults and are supplied by backend.env.
+server:
+  address: 127.0.0.1
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: none
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 2s
+      connect-timeout: 2s
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+jwt:
+  secret: ${JWT_SECRET}
+  expire-minutes: ${JWT_EXPIRE_MINUTES:45}
+file:
+  upload-path: ${UPLOAD_PATH}
+  access-prefix: /uploads
+security:
+  trusted-proxies: ${TRUSTED_PROXIES:}
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+logging:
+  file:
+    path: ${LOG_PATH:/var/log/yufeichi/backend}
+  level:
+    com.yufeichi.server: info

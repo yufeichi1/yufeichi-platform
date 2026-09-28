@@ -28,9 +28,11 @@
 
     <springProfile name="prod">
 
-        <property
+        <springProperty
+                scope="context"
                 name="LOG_PATH"
-                value="/var/log/yufeichi/backend"/>
+                source="logging.file.path"
+                defaultValue="/var/log/yufeichi/backend"/>
 
         <appender name="APP_FILE"
                   class="ch.qos.logback.core.rolling.RollingFileAppender">

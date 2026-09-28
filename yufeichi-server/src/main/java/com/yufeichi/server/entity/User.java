@@ -21,6 +21,7 @@ public class User {
     private String username;
 
     @JsonIgnore
+    @lombok.ToString.Exclude
     private String password;
 
     private String nickname;

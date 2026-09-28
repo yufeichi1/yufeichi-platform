@@ -35,10 +35,14 @@ class ImageStorageTest {
     void publicResolverDoesNotServeUntrustedPaths(String path) throws Exception {
         assertThat(new ImageStorage(root.toString()).publicFile(path)).isNull();
     }
-    @Test void stripsTrailingPayloadAndIgnoresClaimedMimeType() throws Exception {
+    @Test void stripsTrailingPayloadAfterValidatingClaimedMimeType() throws Exception {
         byte[] valid=pngHeader(1,1);
         var out=new ByteArrayOutputStream(); out.write(valid); out.write("<script>active-payload</script>".getBytes());
-        var decoded=new ImageStorage(root.toString()).decode(new MockMultipartFile("file","image.png","text/html",out.toByteArray()));
+        var storage=new ImageStorage(root.toString());
+        for(String mime:new String[]{"text/html","image/jpeg","image/svg+xml"})
+            assertThatThrownBy(()->storage.decode(new MockMultipartFile("file","image.png",mime,out.toByteArray())))
+                .isInstanceOf(BusinessException.class).hasMessageContaining("MIME");
+        var decoded=storage.decode(new MockMultipartFile("file","image.png","image/png",out.toByteArray()));
         assertThat(decoded.contentType()).isEqualTo("image/png");
         assertThat(new String(decoded.bytes(),java.nio.charset.StandardCharsets.ISO_8859_1)).doesNotContain("active-payload");
         assertThat(ImageIO.read(new ByteArrayInputStream(decoded.bytes())).getWidth()).isEqualTo(1);

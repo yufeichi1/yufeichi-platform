@@ -6,6 +6,9 @@ import com.yufeichi.server.dto.LoginDTO;
 import com.yufeichi.server.entity.User;
 import com.yufeichi.server.security.JwtTokenProvider;
 import com.yufeichi.server.security.LoginUser;
+import com.yufeichi.server.security.RedisSecurityStore;
+import com.yufeichi.server.security.ClientAddress;
+import com.yufeichi.server.security.AuditEvents;
 import com.yufeichi.server.service.AuthService;
 import com.yufeichi.server.vo.LoginVO;
 import com.yufeichi.server.vo.UserInfoVO;
@@ -27,20 +30,27 @@ public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisSecurityStore securityStore;
+    private final ClientAddress clientAddress;
 
     @Override
     public LoginVO login(LoginDTO loginDTO) {
+        String username=RedisSecurityStore.normalizeUsername(loginDTO.getUsername());
+        String ip=clientAddress.current();
+        securityStore.checkLogin(username,ip);
         try {
             Authentication authentication =
                     authenticationManager.authenticate(
                             new UsernamePasswordAuthenticationToken(
-                                    loginDTO.getUsername(),
+                                    username,
                                     loginDTO.getPassword()
                             )
                     );
 
             LoginUser loginUser =
                     (LoginUser) authentication.getPrincipal();
+            securityStore.successfulLogin(username);
+            AuditEvents.record("login","success",loginUser.getUser().getId(),null);
 
             String token =
                     jwtTokenProvider.createToken(loginUser);
@@ -58,8 +68,12 @@ public class AuthServiceImpl implements AuthService {
             // Database/provider failures are server errors, not invalid passwords.
             throw exception;
         } catch (DisabledException exception) {
+            securityStore.failedLogin(username,ip);
+            AuditEvents.record("login","failure",null,null);
             throw new BusinessException(ErrorCode.USER_DISABLED);
         } catch (AuthenticationException exception) {
+            securityStore.failedLogin(username,ip);
+            AuditEvents.record("login","failure",null,null);
             throw new BusinessException(
                     ErrorCode.USERNAME_OR_PASSWORD_ERROR
             );
@@ -83,13 +97,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout() {
-        /*
-         * 当前采用无状态 JWT。
-         * 后端清理本次请求的 SecurityContext，
-         * 前端必须同时删除本地 token。
-         *
-         * 第十七阶段可使用 Redis 黑名单实现 token 主动失效。
-         */
+        var attributes=org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        if(!(attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet))
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        String authorization=servlet.getRequest().getHeader("Authorization");
+        if(authorization==null || !authorization.regionMatches(true,0,"Bearer ",0,7))
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        String token=authorization.substring(7).trim();
+        try { securityStore.revoke(token,jwtTokenProvider.getExpiresAt(token)); }
+        catch(io.jsonwebtoken.ExpiredJwtException alreadyExpired) { /* Already unusable. */ }
+        AuditEvents.record("logout","success",AuditEvents.actor(),null);
         SecurityContextHolder.clearContext();
     }
 

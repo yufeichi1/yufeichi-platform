@@ -21,7 +21,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expire-minutes:1440}") long expireMinutes
+            @Value("${jwt.expire-minutes:45}") long expireMinutes
     ) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
 
@@ -30,8 +30,8 @@ public class JwtTokenProvider {
                     "jwt.secret 至少需要 32 个 UTF-8 字节"
             );
         }
-        if (expireMinutes <= 0 || expireMinutes > Long.MAX_VALUE / 60_000L) {
-            throw new IllegalArgumentException("jwt.expire-minutes 必须是有效的正数");
+        if (expireMinutes < 30 || expireMinutes > 60) {
+            throw new IllegalArgumentException("jwt.expire-minutes 必须在30至60分钟之间");
         }
 
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
@@ -48,6 +48,7 @@ public class JwtTokenProvider {
         );
 
         return Jwts.builder()
+                .id(java.util.UUID.randomUUID().toString())
                 .subject(String.valueOf(loginUser.getUser().getId()))
                 .claim("username", loginUser.getUsername())
                 .issuedAt(issuedAt)
@@ -83,6 +84,7 @@ public class JwtTokenProvider {
     public long getExpireMinutes() {
         return expireMinutes;
     }
+    public long getExpiresAt(String token) { return parseClaims(token).getExpiration().getTime(); }
 
     private Claims parseClaims(String token) {
         return jwtParser
