@@ -41,6 +41,10 @@ public class FileService {
             }
         });
         Files.write(temporary,image.bytes());
+        // Linux temp files default to 0600. Permit the deployment's read-only web group
+        // to serve published images through Nginx; keep other users denied.
+        if(Files.getFileAttributeView(temporary,java.nio.file.attribute.PosixFileAttributeView.class)!=null)
+            Files.setPosixFilePermissions(temporary,java.nio.file.attribute.PosixFilePermissions.fromString("rw-r-----"));
         FileInfo file=new FileInfo();
         file.setOriginalName(request.getFile().getOriginalFilename());
         file.setFileName(fileName); file.setFileUrl("/uploads/"+type.directory()+"/"+fileName);

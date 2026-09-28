@@ -233,6 +233,10 @@ class Day2IntegrationTests {
             assertThat(url).matches("/uploads/article/[a-f0-9-]+\\.(png|jpg)");
             assertThat(data.has("filePath")).isFalse();
             assertThat(data.toString()).doesNotContain(uploadRoot.toString());
+            Path stored=uploadRoot.resolve(url.substring("/uploads/".length()));
+            if(Files.getFileAttributeView(stored,java.nio.file.attribute.PosixFileAttributeView.class)!=null)
+                assertThat(Files.getPosixFilePermissions(stored))
+                    .isEqualTo(java.nio.file.attribute.PosixFilePermissions.fromString("rw-r-----"));
             var response=http.getForEntity(url,byte[].class);
             assertThat(response.getStatusCode().value()).isEqualTo(200);
             assertThat(response.getHeaders().getFirst("X-Content-Type-Options")).isEqualTo("nosniff");
