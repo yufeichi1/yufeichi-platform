@@ -257,6 +257,25 @@ test("恢复登录遇到网络故障保留 Token 并可重试；退出移除 Tok
   expect(await token(page)).toBeNull();
 });
 
+test("退出失败保留会话可重试，成功后旧 Token 被真实后端拒绝", async ({ page }) => {
+  await login(page);
+  const original = await token(page);
+  await page.route("**/api/auth/logout", (route) => route.fulfill({
+    status: 503, contentType: "application/json",
+    body: JSON.stringify({ code: 50300, message: "认证服务暂不可用，请稍后重试" }),
+  }));
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page.getByText("认证服务暂不可用，请稍后重试")).toBeVisible();
+  await expect(page).toHaveURL(/\/admin\/articles$/);
+  expect(await token(page)).toBe(original);
+  await page.unroute("**/api/auth/logout");
+  await page.getByRole("button", { name: "退出登录" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  expect(await token(page)).toBeNull();
+  const me = await page.request.get("/api/auth/me", { headers: { Authorization: "Bearer " + original } });
+  expect(me.status()).toBe(401);
+});
+
 test("编辑中认证失效重新登录后恢复未保存内容", async ({ page }) => {
   await login(page);
   await page.getByRole("button", { name: "新建文章" }).click();
