@@ -1,0 +1,55 @@
+name: yufeichi-prod
+services:
+  mysql:
+    image: mysql:8.4.11
+    pull_policy: never
+    restart: unless-stopped
+    ports: ["127.0.0.1:3306:3306"]
+    environment:
+      MYSQL_DATABASE: yufeichi
+      MYSQL_USER: yufeichi
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql-password
+      TZ: Asia/Shanghai
+    secrets: [mysql-root, mysql-password]
+    volumes: ["mysql-data:/var/lib/mysql"]
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci", "--innodb-buffer-pool-size=256M", "--max-connections=60"]
+    mem_limit: 1200m
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$(cat /run/secrets/mysql-root) mysql -h127.0.0.1 -uroot -Nse 'SELECT 1' >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  redis:
+    image: redis:7.4.10
+    pull_policy: never
+    restart: unless-stopped
+    ports: ["127.0.0.1:6379:6379"]
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    secrets: [redis-password]
+    volumes:
+      - redis-data:/data
+      - /etc/yufeichi/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$(cat /run/secrets/redis-password) redis-cli ping | grep -qx PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+secrets:
+  mysql-root:
+    file: /etc/yufeichi/secrets/mysql-root
+  mysql-password:
+    file: /etc/yufeichi/secrets/mysql-password
+  redis-password:
+    file: /etc/yufeichi/secrets/redis-password
+volumes:
+  mysql-data:
+  redis-data:

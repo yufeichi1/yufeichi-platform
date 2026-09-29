@@ -1,0 +1,32 @@
+[Unit]
+Description=Yufeichi Platform Java 21 backend
+Requires=docker.service
+After=network-online.target docker.service
+Wants=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=yufeichi
+Group=www-data
+WorkingDirectory=/opt/yufeichi/backend/current
+EnvironmentFile=/etc/yufeichi/backend.env
+ExecStart=/usr/lib/jvm/java-21-openjdk-amd64/bin/java -Xms128m -Xmx512m -XX:MaxMetaspaceSize=192m -XX:+ExitOnOutOfMemoryError -jar /opt/yufeichi/backend/current/yufeichi-server.jar
+Restart=always
+RestartSec=10
+TimeoutStopSec=40
+SuccessExitStatus=143
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/yufeichi/uploads /var/log/yufeichi/backend
+RestrictSUIDSGID=true
+MemoryMax=900M
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
