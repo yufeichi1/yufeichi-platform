@@ -6,3 +6,5 @@ deploy/production/*.conf text eol=lf
 deploy/production/*.service text eol=lf
 deploy/production/*.md text eol=lf
 docs/*.md text eol=lf
+README.md text eol=lf
+docs/screenshots/*.png binary

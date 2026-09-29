@@ -1,6 +1,6 @@
 # Yufeichi Platform
 
-基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前完成 **Day1—Day5：认证和构建基线、核心内容 API 与图片上传、文章与项目后台、公开网站、安全与发布候选**。生产部署尚未完成。
+基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前已完成 **Day1—Day7：认证安全、核心业务、前后台、真实生产部署、备份恢复与兼容回滚**。V1.0 已部署至 `https://yufeichi.com` 并通过本轮核心交付门禁。
 
 ## 已实现
 
@@ -23,7 +23,7 @@
 
 ## 规划，尚未实现
 
-- Day6—Day7：真实生产部署、备份恢复、回滚及交付。
+- V1.0 已完成真实生产部署、正式备份、Windows 异机副本、独立恢复和上一兼容版本回滚演练。
 - 留言、评论、完整日志管理等后续能力。
 
 现有数据库表、依赖和 Security 白名单不代表业务功能已实现。前端目前提供公开网站与文章、分类、标签、项目后台；未将用户、角色等未实现的管理页面加入菜单。
@@ -110,13 +110,13 @@ yufeichi-server/target/yufeichi-server-0.0.1-SNAPSHOT.jar
 
 `.jar.original` 是重打包前产物。部署脚本不得假定文件名是 `yufeichi-server.jar`。用 **Java 21** 运行可执行 JAR，运行前注入相应 profile 和环境变量；当前默认 dev，不能直接视为生产配置。
 
-## 生产准备（Day5 模板已实现，Day6 待部署）
+## 生产部署与恢复（Day6—Day7 已完成）
 
-已提供 JAR 内的无秘密 `application-prod.yml` 和 [backend.env 模板](deploy/backend.env.example)，显式启用 prod；DB/Redis/JWT 秘密从受保护外置环境文件注入，缺失启动失败，回环监听、关闭文档和 SQL 日志。生产的 JWT 密钥至少 64 字节，DB_NAME 必填，不能使用 root 数据库账号。Compose 与 Java 进程分别注入变量，非 root 服务账户和线上持久化由 Day6 落地。
+已提供 JAR 内的无秘密 `application-prod.yml` 和 [backend.env 模板](deploy/backend.env.example)，显式启用 prod；DB/Redis/JWT 秘密从受保护外置环境文件注入，缺失启动失败，回环监听、关闭文档和 SQL 日志。生产的 JWT 密钥至少 64 字节，DB_NAME 必填，不能使用 root 数据库账号。Compose 与 Java 进程分别注入变量；Day6 已完成非 root systemd、回环端口、MySQL/Redis 持久化、Nginx 与 HTTPS 的真实生产落地。
 
 V1—V9 保持不变，新增 V10 禁用固定种子；上线前必须完成一次性离线 bootstrap，移除初始化凭据，再启动生产服务。具体步骤、环境变量、可信代理和 Redis 持久化边界见 [Day5 生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。未初始化或重新启用种子的生产库不能启动应用。
 
-2026-09-27 公开网络检查：`yufeichi.com` 与 `www.yufeichi.com` 均解析至 `122.51.218.155`，HTTPS 返回 200，TLS 域名及信任校验通过，证书到期时间为 2026-12-24。随后经授权SSH只读检查：sudo可用；站点目录为 `/var/www/yufeichi`，配置为 `/etc/nginx/sites-available/yufeichi`；Certbot续期定时器已启用且最近执行成功。当前仅有静态站点，未配置后端API代理。用户确认项目尚未备份，检查范围内亦未发现项目备份，备份建立与恢复验证仍是Day6/Day7待办。
+截至 2026-09-29，`yufeichi.com` 与 `www.yufeichi.com` 已切换至 V1.0：HTTPS 首页和 `/api/health` 均为 200，HTTP 301 跳转 HTTPS；MySQL 3306、Redis 6379、Spring Boot 8080 仅监听回环地址。Spring Boot 由 systemd 非 root 运行，MySQL/Redis 使用生产 Compose；Certbot dry-run 和 Snap 自动续期均已验证。Day7 已生成 DB+uploads 正式备份、Windows 异机副本，并完成独立恢复和上一兼容 release 回滚演练。
 
 详细修改、命令、验证结果及边界见 [Day1 执行与验收报告](docs/Day1-执行与验收报告.md)。
 
@@ -128,7 +128,7 @@ V1—V9 保持不变，新增 V10 禁用固定种子；上线前必须完成一�
 - 项目默认隐藏；公开列表和详情只显示status=1；文章公开接口只显示status=1。未公开ID与不存在ID都返回404。
 - 上传业务目录仅avatar/article/project/other；单文件及规范化后结果最大5MiB、最长边8192、最多1600万像素。JPEG保存为JPEG；PNG/WebP解码重编码为PNG，剥离元数据及尾随内容；动画仅保留首帧。
 - multipart文件上限5MB，请求上限6MB；Tomcat丢弃已拒绝请求体的上限8MB，以便常见超限请求返回完整413，极大请求仍可能被服务器断开。
-- 图片返回相对fileUrl，不返回磁盘路径。配置UPLOAD_PATH可持久保存，生产迁移时须同步备份该目录；本轮没有部署服务器。
+- 图片返回相对fileUrl，不返回磁盘路径。配置UPLOAD_PATH可持久保存，生产 uploads 已在 Day6 部署，并在 Day7 与数据库一起完成正式备份和独立恢复校验。
 - 当前不提供文件删除或文件管理后台；文章/项目编辑页提供封面上传，移除封面只清空引用。公开详情使用安全 Markdown 渲染，文章编辑器保留纯文本预览。应用崩溃或磁盘清理失败不具备分布式事务保证，部署前仍需备份及孤儿文件运维策略。
 
 Day2 验收记录见 [Day2 执行与验收报告](docs/Day2-执行与验收报告.md)。
@@ -159,7 +159,7 @@ node scripts/test-web.mjs
 
 浏览器报告在 `yufeichi-web/playwright-report/`，截图在 `yufeichi-web/test-results/`，服务日志在 `yufeichi-web/.e2e-logs/`，均不提交 Git。测试前端代码以外也校验测试脚本类型：`pnpm --dir yufeichi-web exec tsc --ignoreConfig --noEmit --types node --module nodenext --target es2023 --skipLibCheck tests/admin.spec.ts playwright.config.ts`。
 
-生产构建输出 `yufeichi-web/dist/`。Vite 代理只用于开发；部署时 Nginx 需分别代理 `/api/`、映射 `/uploads/`，其余前端深层路由使用 `try_files $uri $uri/ /index.html`。生产 Nginx 配置仍属于 Day6，本轮未修改服务器。
+生产构建输出 `yufeichi-web/dist/`。Vite 代理只用于开发；部署时 Nginx 需分别代理 `/api/`、映射 `/uploads/`，其余前端深层路由使用 `try_files $uri $uri/ /index.html`。生产 Nginx 已在 Day6 实际部署并完成 `/api/`、`/uploads/`、SPA fallback 与 HTTPS 验收。
 
 编辑失败保留表单，认证失效时在当前标签页内存中暂存未保存内容，同一账号重新登录后恢复；主动退出会清除暂存。关闭或刷新标签页不会持久保存未提交草稿，请使用“保存草稿”。Token 存于 localStorage，权限从 `/me` 获取，浏览器权限控制不能替代后端注解。
 
@@ -177,8 +177,8 @@ Day3 验收记录见 [Day3 执行与验收报告](docs/Day3-执行与验收报�
 
 `node scripts/test-web.mjs` 现在同时执行 Day3 + Day4 浏览器用例，仍使用原脚本创建的独立 `day3_test` 测试库和随机凭据。项目业务闭环通过真实网页操作；分页与恶意 Markdown 数据通过独立测试 API 建立。故障负例使用请求拦截模拟，主流程连接真实后端。
 
-构建后设置 `$env:E2E_PREVIEW = '1'` 再运行相同脚本，可以针对 dist 生产产物完成浏览器验收。运行结束后移除该环境变量。Nginx 的 SPA fallback、API 前缀、图片与静态资源处理见 [前端构建与 Nginx 路由说明](deploy/Day4-前端构建与Nginx路由说明.md)。本轮没有操作线上 Nginx，实际部署仍属于 Day6。
+构建后设置 `$env:E2E_PREVIEW = '1'` 再运行相同脚本，可以针对 dist 生产产物完成浏览器验收。运行结束后移除该环境变量。Nginx 的 SPA fallback、API 前缀、图片与静态资源处理见 [前端构建与 Nginx 路由说明](deploy/Day4-前端构建与Nginx路由说明.md)。Day6 已完成线上 Nginx、SPA 深层路由、API 和 uploads 路由的真实部署验收。
 
 ## Day5 安全验收
 
-完整记录见 [Day5 执行与验收报告](docs/Day5-执行与验收报告.md)：后端 97 项测试无跳过，前端生产构建通过，dist 浏览器 12 项通过。覆盖 Redis 真实故障、退出撤销、限流并发与过期、一次性初始化、生产文档关闭、逐端点权限与敏感日志负例。初始化操作和环境映射见 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。实际线上部署尚未执行。
+完整记录见 [Day5 执行与验收报告](docs/Day5-执行与验收报告.md)：后端 97 项测试无跳过，前端生产构建通过，dist 浏览器 12 项通过。覆盖 Redis 真实故障、退出撤销、限流并发与过期、一次性初始化、生产文档关闭、逐端点权限与敏感日志负例。初始化操作和环境映射见 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。Day6 已完成实际线上部署；Day7 已完成正式备份、独立恢复和兼容回滚演练。
