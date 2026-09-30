@@ -1,6 +1,6 @@
 # Yufeichi Platform
 
-基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。当前已完成 **Day1—Day7：认证安全、核心业务、前后台、真实生产部署、备份恢复与兼容回滚**。V1.0 已部署至 `https://yufeichi.com` 并通过本轮核心交付门禁。
+基于 Spring Boot 3 + Vue 3 的个人博客、项目展示与后台管理项目。**V1.0 已部署至 `https://yufeichi.com`，核心功能及本轮运维技术门禁通过。** 2026-09-30 已补齐配置同步、定时备份/失败反馈、独立恢复业务验证、兼容回滚读写、容器重建、干净检出和 OpenAPI 截图。本轮收尾更新通过 `dev` 分支的后续提交交付；既有 `v1.0.0` 标签保留为此前发布基线。证据见 [收尾执行与验收报告](docs/V1.0-收尾执行与验收报告.md)。
 
 ## 已实现
 
@@ -18,13 +18,13 @@
 - 公开网页：首页、文章分页与分类/标签筛选、文章详情、项目列表/详情、固定关于介绍；地址栏同步筛选与页码，支持刷新深层地址。
 - Markdown：关闭原生 HTML，DOMPurify 白名单净化；安全外链，站内上传图片，长代码可横向滚动。
 - 网页验收：Playwright 通过真实 Vite 代理连接独立 Java 21/MySQL 8.4/Redis 7 环境；支持完整业务闭环、401/403 和失败恢复检查。
+- 生产部署：非 root systemd、回环端口、固定版本 MySQL/Redis、Nginx/HTTPS；正式 DB+uploads+受保护配置备份、定时任务/失败反馈和 Windows 异机副本；独立恢复读写、新上传、兼容 release 回滚和容器重建已验证。
 
 登录与 `/me` 均返回基本信息、roles 和 permissions。Token 默认 45 分钟，无 Refresh Token；退出在 Redis 保存 SHA-256 撤销记录至原到期时间。登录失败按归一化账号和可信来源 IP 原子计数（10 分钟内账号 5 次/IP 20 次，超限 429）。退出撤销失败时前端保留会话并允许重试。V10 禁用公开默认管理员，新账号通过一次性离线 bootstrap 初始化；审计记录登录、发布、删除、上传结果，不记录秘密或正文。
 
 ## 规划，尚未实现
 
-- V1.0 已完成真实生产部署、正式备份、Windows 异机副本、独立恢复和上一兼容版本回滚演练。
-- 留言、评论、完整日志管理等后续能力。
+- V1.1：留言、评论、完整用户/角色/权限编辑后台、完整日志管理、搜索和统计缓存。
 
 现有数据库表、依赖和 Security 白名单不代表业务功能已实现。前端目前提供公开网站与文章、分类、标签、项目后台；未将用户、角色等未实现的管理页面加入菜单。
 
@@ -53,7 +53,7 @@ Docker Desktop/Engine 必须运行。已有容器可用 `docker start yufeichi-m
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
-保留已有数据卷和凭据；修改 `.env` 不会自动修改已有 MySQL 数据卷内的密码。不要删除数据卷或执行 Flyway clean/repair 来掩盖迁移问题。开发 Compose 当前映射 3306/6379 到宿主机所有网卡，生产收紧端口属于 Day6。
+保留已有数据卷和凭据；修改 `.env` 不会自动修改已有 MySQL 数据卷内的密码。不要删除数据卷或执行 Flyway clean/repair 来掩盖迁移问题。开发 Compose 当前映射 3306/6379 到宿主机所有网卡；生产使用独立的 `deploy/production/compose.yml`，端口已绑定回环地址。
 
 **`deploy/.env` 只供 Compose 插值，不会自动注入宿主机 Java 进程。** 后端 dev profile 的变量如下：
 
@@ -77,7 +77,7 @@ dev 数据库名固定为 `yufeichi`。`MYSQL_ROOT_PASSWORD` 只供 MySQL 容器
 .\scripts\mvn21.ps1 spring-boot:run
 ```
 
-默认地址 `http://localhost:8080`。V10 会禁用 V2 的公开 `admin` 种子。首次初始化新账号请按 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md) 的离线流程操作（也适用于自己的本地库）；不要用测试夹具启用真实环境的种子。本轮未连接或修改开发/生产数据库，迁移和新账号只在独立测试库验证。
+默认地址 `http://localhost:8080`。V10 会禁用 V2 的公开 `admin` 种子。首次初始化新账号请按 [生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md) 的离线流程操作（也适用于自己的本地库）；不要用测试夹具启用真实环境的种子。生产在 Day6 已完成 V1—V10 迁移和离线初始化；自动测试仍仅使用独立测试库。
 
 ## 完整后端验收（Day1—Day5）
 
@@ -110,15 +110,15 @@ yufeichi-server/target/yufeichi-server-0.0.1-SNAPSHOT.jar
 
 `.jar.original` 是重打包前产物。部署脚本不得假定文件名是 `yufeichi-server.jar`。用 **Java 21** 运行可执行 JAR，运行前注入相应 profile 和环境变量；当前默认 dev，不能直接视为生产配置。
 
-## 生产部署与恢复（Day6—Day7 已完成）
+## 生产部署与恢复（已上线，技术验收通过）
 
 已提供 JAR 内的无秘密 `application-prod.yml` 和 [backend.env 模板](deploy/backend.env.example)，显式启用 prod；DB/Redis/JWT 秘密从受保护外置环境文件注入，缺失启动失败，回环监听、关闭文档和 SQL 日志。生产的 JWT 密钥至少 64 字节，DB_NAME 必填，不能使用 root 数据库账号。Compose 与 Java 进程分别注入变量；Day6 已完成非 root systemd、回环端口、MySQL/Redis 持久化、Nginx 与 HTTPS 的真实生产落地。
 
 V1—V9 保持不变，新增 V10 禁用固定种子；上线前必须完成一次性离线 bootstrap，移除初始化凭据，再启动生产服务。具体步骤、环境变量、可信代理和 Redis 持久化边界见 [Day5 生产配置与账号初始化](deploy/Day5-生产配置与账号初始化.md)。未初始化或重新启用种子的生产库不能启动应用。
 
-截至 2026-09-29，`yufeichi.com` 与 `www.yufeichi.com` 已切换至 V1.0：HTTPS 首页和 `/api/health` 均为 200，HTTP 301 跳转 HTTPS；MySQL 3306、Redis 6379、Spring Boot 8080 仅监听回环地址。Spring Boot 由 systemd 非 root 运行，MySQL/Redis 使用生产 Compose；Certbot dry-run 和 Snap 自动续期均已验证。Day7 已生成 DB+uploads 正式备份、Windows 异机副本，并完成独立恢复和上一兼容 release 回滚演练。
+截至 2026-09-30，`yufeichi.com` 与 `www.yufeichi.com` 的 HTTPS 首页和 `/api/health` 均为 200，HTTP 301 跳转 HTTPS；MySQL 3306、Redis 6379、Spring Boot 8080 仅监听回环地址，外部 TCP 检查不可达。systemd、生产 Compose、Certbot dry-run/续期 timer 已验证。Nginx 已同步 JSON 404/413/503 配置；正式备份 service 成功，timer 每天北京时间 03:30 加最多 5 分钟延迟，失败演练通过。独立恢复、兼容回滚和容器重建均已完成真实读写/图片检查，异机副本已校验。具体操作和失败排查见 [生产运维说明](deploy/production/README.md)。
 
-详细修改、命令、验证结果及边界见 [Day1 执行与验收报告](docs/Day1-执行与验收报告.md)。
+历史执行结果见 [Day1 执行与验收报告](docs/Day1-执行与验收报告.md)、[Day6 报告](docs/Day6-执行与验收报告.md)、[Day7 报告](docs/Day7-执行与验收报告.md)。当前完成状态以 [V1.0 进度对齐](docs/V1.0-进度对齐.md) 为准。
 
 ## Day2 使用约定
 
