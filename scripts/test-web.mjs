@@ -7,13 +7,15 @@ import {
   openSync,
   closeSync,
   mkdtempSync,
+  writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir, homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
+import { createAiTestProvider } from "./ai-test-provider.mjs";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const web = join(root, "yufeichi-web");
 const logs = join(web, ".e2e-logs");
@@ -26,6 +28,16 @@ const secret = randomUUID(),
 const created = [],
   processes = [],
   descriptors = [];
+let aiProvider;
+const aiLive = process.env.E2E_AI_LIVE === "1";
+if (aiLive && process.env.E2E_AI === "1") throw new Error("Choose either the local fixture or explicit live AI acceptance");
+if (aiLive && ["AI_API_KEY", "AI_PROVIDER_BASE_URL", "AI_CHAT_MODEL"].some(name => !process.env[name]?.trim()))
+  throw new Error("Live AI acceptance requires provider configuration in this process environment");
+if (aiLive) {
+  const specs = process.argv.slice(2).map(arg => arg.split(/[\\/]/).at(-1))
+    .filter(arg => arg === "ai-live.spec.ts" || arg === "ai-editor-live.spec.ts");
+  if (specs.length !== 1) throw new Error("Choose exactly one live acceptance spec to keep paid calls bounded");
+}
 const docker = (...args) =>
   execFileSync("docker", args, {
     encoding: "utf8",
@@ -67,6 +79,7 @@ let cleaning = false;
 function cleanup() {
   if (cleaning) return;
   cleaning = true;
+  aiProvider?.close();
   for (const child of processes.reverse())
     if (child.exitCode === null) child.kill();
   for (const name of created.reverse()) {
@@ -170,7 +183,9 @@ try {
     TEST_REDIS_PASSWORD: redisSecret,
   };
   const uploads = mkdtempSync(join(tmpdir(), "yufeichi-day3-uploads-"));
-  start(
+  const aiTest = process.env.E2E_AI === "1";
+  if (aiTest) aiProvider = await createAiTestProvider();
+  const backendProcess = start(
     join(jdk, "bin", process.platform === "win32" ? "java.exe" : "java"),
     [
       "-jar",
@@ -179,6 +194,13 @@ try {
       "--spring.config.additional-location=file:./yufeichi-server/src/test/resources/application-test.yml",
       "--server.port=" + backendPort,
       "--file.upload-path=" + uploads,
+      ...(aiLive ? ["--app.ai.enabled=true", '--app.ai.base-url=${AI_PROVIDER_BASE_URL}',
+        '--app.ai.api-key=${AI_API_KEY}', '--app.ai.chat-model=${AI_CHAT_MODEL}',
+        "--app.ai.user-minute-limit=4", "--app.ai.user-daily-limit=4", "--app.ai.daily-request-limit=4",
+        "--app.ai.heartbeat-seconds=1"] : aiTest ? ["--app.ai.enabled=true", "--app.ai.base-url=" + aiProvider.baseUrl,
+        "--app.ai.api-key=browser-fixture-not-a-real-key", "--app.ai.chat-model=fixture-model",
+        "--app.ai.user-minute-limit=100", "--app.ai.user-daily-limit=1000", "--app.ai.daily-request-limit=2000",
+        "--app.ai.heartbeat-seconds=1"] : ["--app.ai.enabled=false"]),
     ],
     env,
     "backend",
@@ -201,17 +223,62 @@ try {
     "-e",
     sql,
   );
+  if (process.env.E2E_ROLLBACK_JAR) {
+    if (aiTest || aiLive) throw new Error("Rollback acceptance must keep model calls disabled");
+    const previousJar = process.env.E2E_ROLLBACK_JAR;
+    if (!existsSync(previousJar)) throw new Error("Previous release JAR does not exist");
+    const history = () => docker("exec", "-e", "MYSQL_PWD=" + secret, mysql, "mysql", "-uroot", "day3_test", "-Nse",
+      "SELECT version,success,checksum FROM flyway_schema_history ORDER BY installed_rank");
+    const before = history();
+    if (!before.split("\n").some(line => line.startsWith("11\t1\t"))) throw new Error("New migration not applied");
+    const exited = new Promise(resolve => backendProcess.once("exit", resolve));
+    backendProcess.kill(); await exited;
+    const legacy = start(join(jdk, "bin", "java.exe"), ["-jar", previousJar,
+      "--spring.profiles.active=test", "--spring.config.additional-location=file:./yufeichi-server/src/test/resources/application-test.yml",
+      "--server.port=" + backendPort, "--file.upload-path=" + uploads, "--app.ai.enabled=false"], env, "rollback-backend");
+    const base = "http://127.0.0.1:" + backendPort;
+    await waitFor(async () => (await fetch(base + "/api/health")).ok, "previous backend on new schema");
+    const login = await fetch(base + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "admin", password: "Admin@123456" }) });
+    if (!login.ok) throw new Error("Previous backend login failed on V11");
+    const headers = { "Content-Type": "application/json", Authorization: "Bearer " + (await login.json()).data.token };
+    const saved = await fetch(base + "/api/admin/articles", { method: "POST", headers,
+      body: JSON.stringify({ title: "隔离回滚夹具", content: "Java21 V11兼容性验证", tagIds: [], isTop: 0, isFeatured: 0 }) });
+    if (!saved.ok) throw new Error("Previous backend write failed on V11");
+    const id = (await saved.json()).data.id;
+    if (!(await fetch(base + "/api/admin/articles/" + id, { headers })).ok || history() !== before)
+      throw new Error("Rollback read or migration history validation failed");
+    const stopped = new Promise(resolve => legacy.once("exit", resolve)); legacy.kill(); await stopped;
+    console.log("ISOLATED_ROLLBACK_PASS: actual previous JAR runs, authenticates and reads/writes with V11; checksums unchanged");
+    cleanup(); process.exit(0);
+  }
   const testEnv = {
     ...process.env,
     API_PROXY_TARGET: "http://127.0.0.1:" + backendPort,
     E2E_BASE_URL: "http://127.0.0.1:" + webPort,
     E2E_ISOLATED: "1",
+    E2E_AI: aiTest ? "1" : "0",
+    E2E_AI_LIVE: aiLive ? "1" : "0",
+    E2E_AI_PROVIDER: aiProvider?.baseUrl || "",
   };
+  // Neither Vite nor the browser test process needs provider credentials/configuration.
+  for (const name of Object.keys(testEnv)) if (name.startsWith("AI_")) delete testEnv[name];
   // Capture the real development OpenAPI UI while this disposable backend is alive.
   const apiDocs = await fetch("http://127.0.0.1:" + backendPort + "/v3/api-docs");
   if (!apiDocs.ok || !(await apiDocs.json()).openapi)
     throw new Error("Development OpenAPI did not return an openapi field");
   const requireWeb = createRequire(join(web, "package.json"));
+  if (aiTest || aiLive) {
+    const { build } = await import(pathToFileURL(requireWeb.resolve("vite")).href);
+    const bundle = await build({ configFile: false, root: web, resolve: { alias: { "@": join(web, "src") } },
+      define: { "process.env.NODE_ENV": JSON.stringify("production"), "__VUE_OPTIONS_API__": "true",
+        "__VUE_PROD_DEVTOOLS__": "false", "__VUE_PROD_HYDRATION_MISMATCH_DETAILS__": "false" },
+      build: { write: false, minify: false, lib: { entry: join(web, "tests/fixtures/ai-client.ts"), name: "YufeichiAiClient", formats: ["iife"] } } });
+    const outputs = Array.isArray(bundle) ? bundle : [bundle];
+    const script = outputs.flatMap(item => item.output || []).find(item => item.type === "chunk");
+    if (!script) throw new Error("AI browser fixture build produced no JavaScript chunk");
+    writeFileSync(join(logs, "ai-client.js"), script.code);
+  }
   const { chromium, expect } = requireWeb("@playwright/test");
   const docsBrowser = await chromium.launch({ headless: true });
   const docsEvidence = mkdtempSync(join(tmpdir(), "yufeichi-openapi-"));

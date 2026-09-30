@@ -77,6 +77,11 @@ const router = createRouter({
       children: [
         { path: "", redirect: "/admin/articles" },
         {
+          path: "ai",
+          component: () => import("@/views/AiWorkspace.vue"),
+          meta: { anyPermissions: ["article:add", "article:update"], title: "AI 助手" },
+        },
+        {
           path: "projects",
           component: () => import("@/views/ProjectManage.vue"),
           meta: { permission: "project:list", title: "项目管理" },
@@ -122,6 +127,8 @@ router.beforeEach(async (to) => {
       return { path: "/session-error", query: { redirect: to.fullPath } };
   }
   if (!store.user) return { path: "/login", query: { redirect: to.fullPath } };
+  if (Array.isArray(to.meta.anyPermissions) && !to.meta.anyPermissions.some(permission =>
+    typeof permission === "string" && store.hasPermission(permission))) return "/403";
   if (
     typeof to.meta.permission === "string" &&
     !store.hasPermission(to.meta.permission)

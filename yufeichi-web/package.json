@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:unit": "node --experimental-strip-types --test tests-unit/*.test.ts",
     "test:e2e": "node ../scripts/test-web.mjs",
     "dev": "vite",
     "build": "vue-tsc -b && vite build",

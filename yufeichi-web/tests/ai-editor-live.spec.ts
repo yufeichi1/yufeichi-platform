@@ -1,0 +1,34 @@
+import { test, expect } from "@playwright/test";
+test.beforeAll(() => {
+  if (process.env.E2E_ISOLATED !== "1" || process.env.E2E_AI_LIVE !== "1") throw new Error("Explicit live isolated acceptance required");
+});
+test.setTimeout(90000);
+test("真实DeepSeek编辑页：流式预览、人工采用与手动保存", async ({ page }) => {
+  const response = await page.request.post("/api/auth/login", { data: { username: "admin", password: "Admin@123456" } });
+  expect(response.ok()).toBeTruthy();
+  const token = (await response.json()).data.token;
+  await page.goto("/");
+  await page.evaluate(token => localStorage.setItem("yufeichi.access-token", token), token);
+  await page.goto("/admin/articles/new");
+  await page.getByLabel("文章标题").fill("Day4公开验收夹具");
+  const content = "公开验收夹具：Yufeichi采用Java21和Vue3。作者根据正文生成摘要，预览后决定是否采用，AI不自动保存或发布文章。模型服务不可用时，原有内容浏览仍应可用。";
+  await page.locator("#article-content").fill(content);
+  let writes = 0;
+  page.on("request", request => { if (request.url().includes("/api/admin/articles") && ["POST", "PUT"].includes(request.method())) writes++; });
+  await page.getByRole("button", { name: "生成摘要", exact: true }).click();
+  const panel = page.getByRole("region", { name: "AI 摘要助手" });
+  await expect(panel.getByRole("status")).toContainText("生成完成", { timeout: 65000 });
+  await expect(page.getByLabel("摘要", { exact: true })).toHaveValue("");
+  expect(writes).toBe(0);
+  await page.getByRole("button", { name: "采用摘要", exact: true }).click();
+  const summary = await page.getByLabel("摘要", { exact: true }).inputValue();
+  expect(summary.length > 0 && summary.length <= 500).toBe(true);
+  expect(writes).toBe(0);
+  await expect(page.locator("#article-content")).toHaveValue(content);
+  await page.screenshot({ path: "test-results/day4-ai-live-editor.png", fullPage: true });
+  await page.getByRole("button", { name: "保存草稿", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/\d+\/edit$/);
+  const id = page.url().match(/articles\/(\d+)/)![1];
+  const article = (await (await page.request.get(`/api/admin/articles/${id}`, { headers: { Authorization: "Bearer " + token } })).json()).data;
+  expect(article.summary === summary && article.content === content && article.status === 0).toBe(true);
+});

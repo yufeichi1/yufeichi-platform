@@ -67,6 +67,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize ->
                         authorize
+                                // Async completion is dispatched by the container after the REQUEST
+                                // has passed JWT and method permissions; don't authenticate it again.
+                                .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ASYNC).permitAll()
                                 .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                                 .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
                                     !environment.acceptsProfiles(org.springframework.core.env.Profiles.of("prod"))))

@@ -12,3 +12,42 @@ server:
   tomcat:
     # Drain a bounded rejected multipart body so clients receive the JSON 413 response.
     max-swallow-size: 8MB
+
+# Explicit application mappings; no auto-configured model or network access when disabled.
+app:
+  ai:
+    enabled: ${AI_ENABLED:false}
+    base-url: ${AI_PROVIDER_BASE_URL:}
+    completions-path: ${AI_COMPLETIONS_PATH:/v1/chat/completions}
+    api-key: ${AI_API_KEY:}
+    chat-model: ${AI_CHAT_MODEL:}
+    json-mode: ${AI_JSON_MODE:true}
+    reasoning-effort: ${AI_REASONING_EFFORT:}
+    request-timeout-seconds: ${AI_REQUEST_TIMEOUT_SECONDS:60}
+    connect-timeout-seconds: ${AI_CONNECT_TIMEOUT_SECONDS:5}
+    heartbeat-seconds: ${AI_HEARTBEAT_SECONDS:10}
+    max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:800}
+    max-input-chars: ${AI_MAX_INPUT_CHARS:12000}
+    max-concurrent-requests: ${AI_MAX_CONCURRENT_REQUESTS:2}
+    user-minute-limit: ${AI_USER_MINUTE_LIMIT:3}
+    user-daily-limit: ${AI_USER_DAILY_LIMIT:10}
+    daily-request-limit: ${AI_DAILY_REQUEST_LIMIT:100}
+    embedding:
+      base-url: ${AI_EMBEDDING_BASE_URL:}
+      api-key: ${AI_EMBEDDING_API_KEY:}
+      model: ${AI_EMBEDDING_MODEL:}
+      path: ${AI_EMBEDDING_PATH:}
+      dimensions: ${AI_EMBEDDING_DIMENSIONS:1024}
+    vector:
+      enabled: ${AI_VECTOR_ENABLED:false}
+      url: ${AI_VECTOR_URL:}
+      username: ${AI_VECTOR_USERNAME:}
+      password: ${AI_VECTOR_PASSWORD:}
+
+logging:
+  level:
+    # Library warnings may include prompts; use only the application's safe request logs.
+    org.springframework.ai: off
+    org.springframework.web.reactive.function.client: off
+    reactor.netty.http.client: off
+    com.zaxxer.hikari: off

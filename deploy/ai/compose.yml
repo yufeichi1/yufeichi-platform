@@ -1,0 +1,26 @@
+name: yufeichi-ai-local
+services:
+  pgvector:
+    # PostgreSQL 17 + pgvector 0.8.6; verified digest on 2026-09-30.
+    image: pgvector/pgvector:0.8.6-pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: yufeichi_ai
+      POSTGRES_USER: ai_vector
+      POSTGRES_PASSWORD: ${AI_VECTOR_PASSWORD:?Set an independent local PostgreSQL password}
+    ports:
+      - "127.0.0.1:${AI_VECTOR_PORT:-15432}:5432"
+    volumes:
+      - ai_pgvector_data:/var/lib/postgresql/data
+    mem_limit: 512m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    labels:
+      yufeichi.component: ai-vector-local
+volumes:
+  ai_pgvector_data:

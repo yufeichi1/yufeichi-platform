@@ -9,6 +9,7 @@ import { preserveDraft, takeDraft } from "@/stores/editorDraft";
 import type { ArticleInput, Taxonomy } from "@/types/api";
 import PageState from "@/components/PageState.vue";
 import UploadImage from "@/components/UploadImage.vue";
+import AiSummaryPanel from "@/components/AiSummaryPanel.vue";
 const route = useRoute(),
   router = useRouter(),
   user = useUserStore();
@@ -222,6 +223,8 @@ onMounted(load);
             placeholder="用几句话介绍这篇文章…"
             :disabled="busy || !canSave"
           />
+          <AiSummaryPanel :content="form.content" :existing-summary="form.summary || ''"
+            :disabled="busy || !canSave" @adopt="form.summary = $event" />
           <div class="content-label">
             <label for="article-content"
               >正文 <span class="required">*</span></label

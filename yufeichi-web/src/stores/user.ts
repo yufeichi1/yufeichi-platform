@@ -3,11 +3,13 @@ import { ref } from "vue";
 import { ApiError, request, TOKEN_KEY } from "@/api/http";
 import type { LoginResult, UserInfo } from "@/types/api";
 import { clearDrafts } from "./editorDraft";
+import { cancelAiRequests } from "@/api/ai";
 
 export const useUserStore = defineStore("user", () => {
   const user = ref<UserInfo | null>(null);
   let restoring: Promise<void> | null = null;
   function clear() {
+    cancelAiRequests();
     localStorage.removeItem(TOKEN_KEY);
     user.value = null;
   }
@@ -46,6 +48,7 @@ export const useUserStore = defineStore("user", () => {
     return restoring;
   }
   async function logout() {
+    cancelAiRequests();
     try {
       await request<void>({ url: "/auth/logout", method: "POST" });
     } catch (error: unknown) {

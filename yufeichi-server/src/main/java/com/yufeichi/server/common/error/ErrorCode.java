@@ -27,7 +27,10 @@ public enum ErrorCode {
 
     ARTICLE_NOT_FOUND(60001, "文章不存在", HttpStatus.NOT_FOUND),
     PROJECT_NOT_FOUND(61001, "项目不存在", HttpStatus.NOT_FOUND),
-    FILE_UPLOAD_ERROR(62001, "文件上传失败", HttpStatus.INTERNAL_SERVER_ERROR);
+    FILE_UPLOAD_ERROR(62001, "文件上传失败", HttpStatus.INTERNAL_SERVER_ERROR),
+    AI_UNAVAILABLE(63001, "AI 服务暂不可用，请稍后重试", HttpStatus.SERVICE_UNAVAILABLE),
+    AI_TIMEOUT(63002, "AI 请求超时，请稍后重试", HttpStatus.GATEWAY_TIMEOUT),
+    AI_INVALID_RESPONSE(63003, "AI 返回格式不符合要求，请重试", HttpStatus.BAD_GATEWAY);
 
     private final int code;
     private final String message;

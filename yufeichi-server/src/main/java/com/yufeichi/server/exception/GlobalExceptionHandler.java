@@ -30,6 +30,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Result<Void>> handleBusinessException(BusinessException exception) {
         return ResponseEntity.status(ErrorCode.httpStatusFor(exception.getCode()))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(Result.error(exception.getCode(), exception.getMessage()));
     }
 
@@ -41,7 +42,8 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getDefaultMessage() == null
                         ? "请求参数错误" : error.getDefaultMessage())
                 .orElse("请求参数错误");
-        return ResponseEntity.badRequest().body(Result.error(ErrorCode.PARAM_ERROR, message));
+        return ResponseEntity.badRequest().contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(Result.error(ErrorCode.PARAM_ERROR, message));
     }
 
     @ExceptionHandler({ConstraintViolationException.class, HttpMessageNotReadableException.class,
@@ -100,6 +102,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<Result<Void>> error(ErrorCode code) {
-        return ResponseEntity.status(code.getHttpStatus()).body(Result.error(code));
+        return ResponseEntity.status(code.getHttpStatus()).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(Result.error(code));
     }
 }

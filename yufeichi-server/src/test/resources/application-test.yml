@@ -1,4 +1,20 @@
 # Only test classes supply these via their own containers. No dev/prod fallback.
+app:
+  ai:
+    enabled: false
+    api-key: ""
+    base-url: ""
+    chat-model: ""
+    embedding:
+      base-url: ""
+      api-key: ""
+      model: ""
+      dimensions: 1024
+    vector:
+      enabled: false
+      url: ""
+      username: ""
+      password: ""
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

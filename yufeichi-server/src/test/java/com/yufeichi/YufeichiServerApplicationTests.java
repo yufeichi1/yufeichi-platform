@@ -113,6 +113,22 @@ class YufeichiServerApplicationTests {
     }
 
     @Test
+    void disabledAiDoesNotRequireModelAndCorePublicReadStaysAvailable() {
+        assertThat(environment.getProperty("app.ai.enabled", Boolean.class)).isFalse();
+        assertThat(environment.getProperty("app.ai.vector.enabled", Boolean.class)).isFalse();
+        assertThat(environment.getProperty("app.ai.embedding.api-key")).isEmpty();
+        assertThat(environment.getProperty("app.ai.vector.url")).isEmpty();
+        var login = login("admin", "Admin@123456");
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(login.getBody().path("data").path("token").asText());
+        var response = http.exchange("/api/admin/ai/summary", HttpMethod.POST,
+                new HttpEntity<>(Map.of("content", "正文"), headers), JsonNode.class);
+        assertResult(response, 503, 63001);
+        assertResult(http.getForEntity("/api/articles", JsonNode.class), 200, 0);
+        assertResult(http.getForEntity("/api/projects", JsonNode.class), 200, 0);
+    }
+
+    @Test
     void correctPasswordAndNormalTokenReachRealMeEndpoint() {
         var login = login("admin", "Admin@123456");
         assertResult(login, 200, 0);
@@ -224,12 +240,12 @@ class YufeichiServerApplicationTests {
     void realMysql84Redis7AndAllMigrationChecksumsAreValid() {
         assertThat(jdbc.queryForObject("SELECT VERSION()", String.class)).startsWith("8.4.");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
-        assertThat(flyway.info().applied()).hasSize(10);
+        assertThat(flyway.info().applied()).hasSize(11);
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND checksum IS NOT NULL", Integer.class))
-                .isEqualTo(10);
+                .isEqualTo(11);
         try (var connection = redis.getConnectionFactory().getConnection()) {
             assertThat(connection.ping()).isEqualTo("PONG");
             assertThat(connection.serverCommands().info("server").getProperty("redis_version")).startsWith("7.");

@@ -15,6 +15,9 @@ let unauthorized: (() => void) | undefined;
 export function onUnauthorized(handler: () => void) {
   unauthorized = handler;
 }
+export function notifyUnauthorized(token: string) {
+  if (token === localStorage.getItem(TOKEN_KEY)) unauthorized?.();
+}
 const client = axios.create({ baseURL: "/api", timeout: 15000 });
 export async function request<T>(
   config: AxiosRequestConfig,
@@ -46,7 +49,7 @@ export async function request<T>(
         token &&
         token === localStorage.getItem(TOKEN_KEY)
       )
-        unauthorized?.();
+        notifyUnauthorized(token);
       const fallback =
         status === 403
           ? "你没有执行此操作的权限"

@@ -59,6 +59,8 @@ async function logout() {
             >{{ item.name }}</RouterLink
           ></template
         >
+      <RouterLink v-if="user.hasPermission('article:add') || user.hasPermission('article:update')"
+        to="/admin/ai" :class="{ active: route.path === '/admin/ai' }"><small>05</small>AI 助手</RouterLink>
       </nav>
       <div class="sidebar-note">记录思考<br />让每一次创作都有迹可循。</div>
     </aside>
