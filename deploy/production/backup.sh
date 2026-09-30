@@ -24,6 +24,11 @@ backend=$(readlink -f /opt/yufeichi/backend/current)
 frontend=$(readlink -f /var/www/yufeichi-app/current)
 "${compose[@]}" exec -T mysql sh -c 'MYSQL_PWD="$(cat /run/secrets/mysql-root)" exec mysqldump -uroot --single-transaction --routines --events --triggers --no-tablespaces --set-gtid-purged=OFF --databases yufeichi' | gzip > "$partial/database.sql.gz"
 gzip -t "$partial/database.sql.gz"
+if test -f /opt/yufeichi/deploy/ai-compose.yml; then
+    ai_compose=(docker compose -f /opt/yufeichi/deploy/ai-compose.yml)
+    "${ai_compose[@]}" exec -T pgvector sh -c 'PGPASSWORD="$(cat /run/secrets/ai-vector-password)" exec pg_dump -h 127.0.0.1 -U ai_vector -d yufeichi_ai --no-owner --no-acl' | gzip > "$partial/ai-vector.sql.gz"
+    gzip -t "$partial/ai-vector.sql.gz"
+fi
 tar --acls --xattrs -czpf "$partial/uploads.tar.gz" -C /var/lib/yufeichi uploads
 tar -tzf "$partial/uploads.tar.gz" >/dev/null
 # This archive contains secrets: root-only on host and private ACL on offsite copies.
@@ -34,6 +39,9 @@ printf 'timestamp_utc=%s\nbackend=%s\nfrontend=%s\nmysql=mysql:8.4.11\nredis=red
 test "$backend" = "$(readlink -f /opt/yufeichi/backend/current)"
 test "$frontend" = "$(readlink -f /var/www/yufeichi-app/current)"
 (cd "$partial" && sha256sum database.sql.gz uploads.tar.gz config.tar.gz flyway.txt manifest.txt > SHA256SUMS && sha256sum -c SHA256SUMS)
+if test -f "$partial/ai-vector.sql.gz"; then
+    (cd "$partial" && sha256sum ai-vector.sql.gz >> SHA256SUMS && sha256sum -c SHA256SUMS >/dev/null)
+fi
 mv "$partial" "$base/$id"
 tar -czf "$archive" -C "$base" "$id"
 tar -tzf "$archive" >/dev/null

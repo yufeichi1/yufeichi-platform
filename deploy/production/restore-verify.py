@@ -49,7 +49,7 @@ def main():
     expected_files = {'database.sql.gz', 'uploads.tar.gz', 'config.tar.gz', 'flyway.txt', 'manifest.txt'}
     for line in (backup / 'SHA256SUMS').read_text().splitlines():
         expected, name = line.split()
-        assert name in expected_files
+        assert name in expected_files | {'ai-vector.sql.gz'}
         assert hashlib.sha256((backup / name).read_bytes()).hexdigest() == expected
     assert all((backup / name).is_file() for name in expected_files)
     spec = importlib.util.spec_from_file_location('ops_probe', Path(__file__).with_name('ops-probe.py'))
@@ -105,7 +105,8 @@ def main():
         dump.stdin.close()
         assert dump.wait() == 0, 'Independent DB import failed'
         sql("CREATE USER 'restore_app'@'%' IDENTIFIED BY '" + app_password + "'; GRANT ALL PRIVILEGES ON yufeichi.* TO 'restore_app'@'%';")
-        assert sql('SELECT COUNT(*) FROM yufeichi.flyway_schema_history WHERE success=1;') == '10'
+        expected_migrations = [line for line in (backup / 'flyway.txt').read_text().splitlines() if line.strip()]
+        assert sql('SELECT COUNT(*) FROM yufeichi.flyway_schema_history WHERE success=1;') == str(len(expected_migrations))
         assert sql('SELECT COUNT(*) FROM yufeichi.sys_user_role WHERE user_id=2;') != '0'
         assert sql('SELECT COUNT(*) FROM yufeichi.blog_article_tag WHERE article_id=' + str(state['article']) + ';') == '1'
         metadata = sql('SELECT file_url,file_size FROM yufeichi.file_info WHERE deleted=0;')
@@ -139,7 +140,7 @@ def main():
         ops.check(client, state, write=True, upload=True)
         files = list((workspace / 'uploads').rglob('*.png'))
         assert any(hashlib.sha256(path.read_bytes()).hexdigest() == state['image_sha256'] for path in files)
-        print('INDEPENDENT_RESTORE_PASS: V1-V10, account-role and article-tag relations, real login/read/write/upload; isolated JWT key', flush=True)
+        print('INDEPENDENT_RESTORE_PASS: recorded MySQL migrations, account-role and article-tag relations, real login/read/write/upload; isolated JWT key. PG dump requires separate vector restore verification.', flush=True)
         print('Private restore evidence:', workspace, flush=True)
     finally:
         if process:

@@ -14,7 +14,7 @@ def sql(query):
     return output(COMPOSE + ['exec', '-T', 'mysql', 'sh', '-c',
         'MYSQL_PWD="$(cat /run/secrets/mysql-root)" exec mysql -uroot -Nse "$1"', 'sh', query])
 
-assert sql('SELECT COUNT(*) FROM yufeichi.flyway_schema_history WHERE success=1 AND checksum IS NOT NULL') == '10'
+assert sql('SELECT COUNT(*) FROM yufeichi.flyway_schema_history WHERE success=1 AND checksum IS NOT NULL') == '11'
 assert sql("SELECT status FROM yufeichi.sys_user WHERE id=1 AND username='admin'") == '0'
 assert sql('SELECT completed FROM yufeichi.sys_bootstrap_state WHERE id=1') == '1'
 print('Migration versions/success/checksum:')
