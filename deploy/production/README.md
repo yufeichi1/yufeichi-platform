@@ -60,4 +60,43 @@ node deploy/production/browser-acceptance.mjs <受保护的管理员JSON路径>
 
 截图输出至系统临时目录 `yufeichi-day6-browser`，脚本不保存登录密码页或认证跟踪。服务器交付文件删除后，如需再次运行有写操作的验收，应由管理员临时提供 root-only 凭据文件，并在完成后移除；不要把初始密码永久留在自动化脚本中。
 
-后续发布先备份数据库、配置和 uploads，再校验迁移兼容性；创建新 release 后切 current。应用回退不等于数据库回退。异机备份、独立恢复演练、完整回滚与定时失败通知仍属于 Day7，当前不宣称已完成。
+后续发布先备份数据库、配置和 uploads，再校验迁移兼容性；创建新 release 后切 current。应用回退不等于数据库回退。
+
+2026-09-30 收尾已完成：Nginx JSON 配置已同步，正式定时备份/失败反馈、恢复后业务读取、兼容回滚读写及容器重建均已实测。详情见 [收尾验收报告](../../docs/V1.0-收尾执行与验收报告.md) 与 [V1.0 进度对齐](../../docs/V1.0-进度对齐.md)。
+
+## 正式备份与日常检查
+
+`backup.sh` 使用 single-transaction 数据库快照，再归档不可变 uploads、受保护配置、迁移和 manifest；内部校验成功且外层 tar 可读才形成正式 `.tar.gz`。失败保留 `.partial` 供诊断，不能把它当成功包。脚本不删除旧备份，需按磁盘容量和保留策略定期核对。发布与备份共享 `/run/lock/yufeichi-ops.lock`。
+
+生产已安装 `yufeichi-backup.service`、`yufeichi-backup.timer`、`yufeichi-backup-failure@.service`，每天北京时间 03:30 加 0—5 分钟随机延迟；Persistent=true，机器停机期间错过的任务可补执行。失败反馈为 systemd failed 状态、journal 和 root-only `/var/lib/yufeichi/backup-status/last-failure`；最后成功包记录在 `last-success`。保留历史失败记录，需比较成功/失败时间，不要把失败演练记录当作当前任务仍失败。
+
+```bash
+sudo systemctl start yufeichi-backup.service
+sudo systemctl show yufeichi-backup.service -p Result -p ExecMainStatus
+sudo systemctl list-timers yufeichi-backup.timer
+sudo journalctl -u yufeichi-backup.service -n 50 --no-pager
+sudo cat /var/lib/yufeichi/backup-status/last-success /var/lib/yufeichi/backup-status/last-failure
+```
+
+备份位于 `/var/backups/yufeichi/backup-<UTC时间>-<PID>` 及同名 tar 包，目录 700、文件 600；包含真实 DB/Redis/JWT 配置和数据库内容。临时 `acceptance-admin.json`、`initial-admin.json` 已被新脚本排除。通过受信 SSH 传输包后比对整体与内部 SHA-256；如借用中转文件，设 600、放在 700 目录，确认接收后移除。Windows 本次副本存于 `D:/Desktop/yufeichi/yufeichi-backups`，ACL 限制至持有人、SYSTEM、Administrators。异机复制应随正式运维流程持续执行。
+
+## 恢复、重建与兼容回滚验收
+
+这些命令用于明确允许短暂中断的受控验收。先通过安全渠道临时提供 `/etc/yufeichi/acceptance-admin.json`，root:root 600；文件结构为 username/password，不能写到 CLI 或 Git。再用 `ops-probe.py prepare` 创建标明用途的文章、项目、分类、标签和图片；状态放在 root-only `/var/lib/yufeichi-ops/probe.json`，与应用用户可写目录分离。凭据仅发往固定生产域名或独立回环端口。
+
+```bash
+sudo python3 -B /opt/yufeichi/deploy/ops-probe.py prepare
+sudo systemctl start yufeichi-backup.service
+sudo python3 -B /opt/yufeichi/deploy/restore-verify.py <刚生成的已校验备份目录>
+sudo python3 -B /opt/yufeichi/deploy/recreate-verify.py
+sudo python3 -B /opt/yufeichi/deploy/rollback-rehearsal.py <兼容backend-release> --frontend <兼容frontend-release> --upload
+sudo python3 -B /opt/yufeichi/deploy/ops-probe.py cleanup
+```
+
+恢复只导入新建的 `yufeichi-restore-*` 隔离容器，随机回环端口、独立 Redis、新 JWT key 与非 root Java；校验账号角色、文章标签、所有 file_info 链接、公开内容、写入和新上传。诊断文件位于受保护的 `restore-runs`，临时容器在 finally 中回收。真实灾难恢复若不保留原 Redis 撤销状态，必须生成新 JWT key 再开放认证；回放数据库或 config 不应恢复已撤销 Token 的效力。
+
+重建使用 `up --force-recreate`，保留原 named volumes，绝不能使用 `down -v`。回滚演练验证后总会切回开始时的前后端 current；应用兼容回滚不回滚 schema。当前已验证候选为 `day7-compatible-31a551c-uploadfix`，源自 `31a551c` 回移 `7c24911` 权限修复。原始 `day7-rollback-31a551c` 会产生 Nginx 403 的新图片，不能作为生产回滚候选。
+
+兼容候选可从独立检出构建：checkout `31a551c`，仅应用 `7c24911` 的 FileService 和现有回归断言补丁，Java21 `clean verify` 全通过后上传 JAR，校验 SHA-256，并保留 compatibility.txt。该候选与当前版的前端源码一致；演练覆盖两个 current 链接的切换，不承诺任意历史版本兼容。
+
+`verify-backup-failure.sh` 通过只存在于 `/run/systemd/system` 的失败测试 unit，令备份读取不存在的 Compose 文件；校验 OnFailure 和没有正式归档，随后移除该临时 unit。`verify-nginx.py --outage` 会短暂停止应用并在 finally 中启动，验证网关 JSON 503。验收完成后移除临时管理员文件与状态；本次已执行清理。新生产脚本安装入口为 `install-ops.sh <上传模板目录>`，先校验并验收，再 enable timer。

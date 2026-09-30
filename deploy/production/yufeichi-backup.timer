@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Yufeichi backup at 03:30 Asia/Shanghai
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Shanghai
+RandomizedDelaySec=5min
+Persistent=true
+Unit=yufeichi-backup.service
+
+[Install]
+WantedBy=timers.target

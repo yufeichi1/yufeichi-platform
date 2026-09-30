@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir, homedir } from "node:os";
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
 import { createServer } from "node:net";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const web = join(root, "yufeichi-web");
@@ -206,6 +207,23 @@ try {
     E2E_BASE_URL: "http://127.0.0.1:" + webPort,
     E2E_ISOLATED: "1",
   };
+  // Capture the real development OpenAPI UI while this disposable backend is alive.
+  const apiDocs = await fetch("http://127.0.0.1:" + backendPort + "/v3/api-docs");
+  if (!apiDocs.ok || !(await apiDocs.json()).openapi)
+    throw new Error("Development OpenAPI did not return an openapi field");
+  const requireWeb = createRequire(join(web, "package.json"));
+  const { chromium, expect } = requireWeb("@playwright/test");
+  const docsBrowser = await chromium.launch({ headless: true });
+  const docsEvidence = mkdtempSync(join(tmpdir(), "yufeichi-openapi-"));
+  try {
+    const docsPage = await docsBrowser.newPage({ viewport: { width: 1440, height: 1000 } });
+    await docsPage.goto("http://127.0.0.1:" + backendPort + "/swagger-ui/index.html");
+    await expect(docsPage.locator(".swagger-ui .info .title")).toBeVisible();
+    await docsPage.screenshot({ path: join(docsEvidence, "openapi.png"), fullPage: true });
+    console.log("OpenAPI JSON/UI PASS; screenshot: " + join(docsEvidence, "openapi.png"));
+  } finally {
+    await docsBrowser.close();
+  }
   start(
     process.execPath,
     [

@@ -1,0 +1,19 @@
+[Unit]
+Description=Yufeichi verified database, uploads and protected configuration backup
+Requires=docker.service
+After=docker.service
+OnFailure=yufeichi-backup-failure@%n.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/bin/bash /opt/yufeichi/deploy/backup.sh
+TimeoutStartSec=30min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/backups/yufeichi /var/lib/yufeichi/backup-status /run/lock
+StandardOutput=journal
+StandardError=journal

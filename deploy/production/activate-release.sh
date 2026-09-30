@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 test "$(id -u)" = 0
+exec 9>/run/lock/yufeichi-ops.lock
+flock -n 9 || { echo 'Another deployment/backup operation is running' >&2; exit 75; }
 release=${1:?Usage: activate-release.sh YYYYMMDDTHHMMSSZ-commit}
 [[ "$release" =~ ^[0-9]{8}T[0-9]{6}Z-[a-f0-9]{7,40}$ ]] || exit 2
 backend="/opt/yufeichi/backend/releases/$release"
