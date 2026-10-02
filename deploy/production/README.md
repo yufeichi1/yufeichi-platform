@@ -1,5 +1,22 @@
 # Day6 生产部署操作说明
 
+这里的原Day6指V1.0冲刺部署。2026-10-01的AI计划Day6增量发布证据见[AI Day6报告](../../docs/ai/Day6-执行与上线验收报告.md)。新增摘要助手和手动内容索引，尚未开放知识问答。
+
+AI采用独立`ai-compose.yml`、PG持久卷和127.0.0.1:15432端口；MySQL/Redis不重建。`configure-ai.py`仅从mode600的受保护JSON导入模型变量，保留原业务配置，消费后移除输入文件；真实Key不在模板中。Java需同时开启AI_ENABLED、AI_VECTOR_ENABLED及完整Embedding/PG配置。
+
+正常发布继续使用`activate-release.sh`，失败自动恢复原current链接和Nginx；MySQL V11与PG数据卷保留。已有V1—V10 checksum不得改动，禁止clean/repair或删除生产卷。正式`backup.sh`现在包含PG SQL、配置及原有业务备份，PG恢复必须单独验证，不能用MySQL恢复报告代替。
+
+```bash
+# 先安全提供临时root:root 600管理员JSON；脚本完成后移除该临时凭据。
+sudo python3 /opt/yufeichi/deploy/ai-acceptance.py
+# 额外1次真实Embedding调用，不写任何数据库；适用于公开内容为空时。
+sudo python3 /opt/yufeichi/deploy/ai-embedding-smoke.py
+sudo bash /opt/yufeichi/deploy/backup.sh
+sudo python3 /opt/yufeichi/deploy/verify-ai-vector-backup.py /var/backups/yufeichi/<已校验备份目录>
+```
+
+浏览器验收从本地项目执行`node deploy/production/ai-browser-acceptance.mjs <受保护管理员JSON路径>`，实际生成一次摘要、不保存文章，截图不包含密码/Token，未录制trace。模型不可用时可关闭AI_ENABLED并重启应用；业务库与已有发布内容仍保留。生产公开内容为空时索引0来源/0片段是正常结果，后续发布真实内容后手动重建。
+
 适用本项目的 Ubuntu 24.04 amd64 服务器。线上入口为 `https://yufeichi.com` 与 `https://www.yufeichi.com`，后台 `/login`。实际执行证据见 [Day6 报告](../../docs/Day6-执行与验收报告.md)。本目录只有模板和脚本，没有服务器真实环境文件、口令或私钥。
 
 ## 布局及权限

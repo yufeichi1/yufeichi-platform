@@ -56,6 +56,7 @@
 | `AI_JSON_MODE` | `json-mode` | true；是否向兼容 API 请求 json_object |
 | `AI_REASONING_EFFORT` | `reasoning-effort` | 空；官方 `api.deepseek.com` 自动使用 `none`，其他供应商不发送该字段；显式值优先 |
 | `AI_REQUEST_TIMEOUT_SECONDS` | `request-timeout-seconds` | 60，包含重试的整条生成时限 |
+| `AI_INDEX_TIMEOUT_SECONDS` | `index-timeout-seconds` | 300，1—300；跨过时限的批次不得激活索引 |
 | `AI_CONNECT_TIMEOUT_SECONDS` | `connect-timeout-seconds` | 5 |
 | `AI_HEARTBEAT_SECONDS` | `heartbeat-seconds` | 10 |
 | `AI_MAX_OUTPUT_TOKENS` | `max-output-tokens` | 800 |

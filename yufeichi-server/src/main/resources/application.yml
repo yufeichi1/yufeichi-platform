@@ -24,6 +24,7 @@ app:
     json-mode: ${AI_JSON_MODE:true}
     reasoning-effort: ${AI_REASONING_EFFORT:}
     request-timeout-seconds: ${AI_REQUEST_TIMEOUT_SECONDS:60}
+    index-timeout-seconds: ${AI_INDEX_TIMEOUT_SECONDS:300}
     connect-timeout-seconds: ${AI_CONNECT_TIMEOUT_SECONDS:5}
     heartbeat-seconds: ${AI_HEARTBEAT_SECONDS:10}
     max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:800}

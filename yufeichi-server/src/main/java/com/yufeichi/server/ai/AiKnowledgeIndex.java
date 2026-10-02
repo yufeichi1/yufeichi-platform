@@ -79,9 +79,11 @@ public class AiKnowledgeIndex {
     }
     private void run(String id) {
         try {
+            Instant deadline = Instant.now().plusSeconds(properties.getIndexTimeoutSeconds());
             var vector = Objects.requireNonNull(vectors.getIfAvailable());
             vector.initialize();
             var snapshot = sources.read(false);
+            checkDeadline(deadline);
             var state = jdbc.queryForMap("SELECT active_version,manifest_hash FROM ai_index_state WHERE id=1");
             String version = UUID.randomUUID().toString();
             if (snapshot.hash().equals(state.get("manifest_hash")) && state.get("active_version") != null)
@@ -93,21 +95,23 @@ public class AiKnowledgeIndex {
                 if (version.equals(state.get("active_version"))) version = UUID.randomUUID().toString();
                 documents = sources.chunks(snapshot, version, properties.getEmbedding().getModel(), properties.getEmbedding().getDimensions());
                 jdbc.update("UPDATE ai_index_job SET index_version=? WHERE id=?", version, id);
-                Instant deadline = Instant.now().plusSeconds(300);
                 for (int offset = 0; offset < documents.size(); offset += 20) {
-                    if (Thread.currentThread().isInterrupted() || Instant.now().isAfter(deadline)) throw new IndexFailure("TIMEOUT");
+                    checkDeadline(deadline);
                     var batch = documents.subList(offset, Math.min(offset + 20, documents.size()));
                     int chars = batch.stream().mapToInt(d -> Objects.requireNonNull(d.getText()).length()).sum();
                     try (var lease = guard.acquireIndexBatch(chars)) { vector.add(batch); }
+                    checkDeadline(deadline);
                     jdbc.update("UPDATE ai_index_job SET completed_chunks=? WHERE id=?", offset + batch.size(), id);
                 }
                 if (!vector.matches(version, documents)) throw new IndexFailure("VECTOR_VALIDATION");
             }
+            checkDeadline(deadline);
             final String completeVersion = version;
             final int count = documents.size();
             tx.executeWithoutResult(transaction -> {
                 // Short shared row/range locks fence concurrent publication/edit/deletion at activation.
                 if (!sources.read(true).hash().equals(snapshot.hash())) throw new IndexFailure("SOURCE_CHANGED");
+                checkDeadline(deadline);
                 int changed = jdbc.update("UPDATE ai_index_state SET active_version=?,manifest_hash=?,activated_at=NOW(),running_job=NULL WHERE id=1 AND running_job=?", completeVersion, snapshot.hash(), id);
                 if (changed != 1) throw new IndexFailure("INTERRUPTED");
                 jdbc.update("UPDATE ai_index_job SET status='SUCCEEDED',completed_chunks=?,finished_at=NOW() WHERE id=? AND status='RUNNING'", count, id);
@@ -126,6 +130,9 @@ public class AiKnowledgeIndex {
             jdbc.update("UPDATE ai_index_state SET running_job=NULL WHERE id=1 AND running_job=?", id);
         });
         LoggerFactory.getLogger(getClass()).warn("AI index job={} status=FAILED code={}", id, code);
+    }
+    private static void checkDeadline(Instant deadline) {
+        if (Thread.currentThread().isInterrupted() || !Instant.now().isBefore(deadline)) throw new IndexFailure("TIMEOUT");
     }
     @PreDestroy public void close() { worker.shutdownNow(); }
     private static final class IndexFailure extends RuntimeException {

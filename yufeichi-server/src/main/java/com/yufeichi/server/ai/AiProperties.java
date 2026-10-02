@@ -19,6 +19,7 @@ public class AiProperties {
     private boolean jsonMode = true;
     private String reasoningEffort = "";
     private int requestTimeoutSeconds = 60;
+    private int indexTimeoutSeconds = 300;
     private int connectTimeoutSeconds = 5;
     private int heartbeatSeconds = 10;
     private int maxOutputTokens = 800;
@@ -88,7 +89,7 @@ public class AiProperties {
     public void validate() {
         if (!reasoningEffort.isBlank() && !java.util.Set.of("none", "minimal", "low", "medium", "high", "xhigh", "max").contains(reasoningEffort))
             throw new IllegalArgumentException("Invalid AI reasoning effort");
-        if (requestTimeoutSeconds < 1 || requestTimeoutSeconds > 120 || connectTimeoutSeconds < 1
+        if (indexTimeoutSeconds < 1 || indexTimeoutSeconds > 300 || requestTimeoutSeconds < 1 || requestTimeoutSeconds > 120 || connectTimeoutSeconds < 1
                 || connectTimeoutSeconds > requestTimeoutSeconds || heartbeatSeconds < 1
                 || heartbeatSeconds > 30 || maxOutputTokens < 1 || maxOutputTokens > 2000
                 || maxInputChars < 1 || maxInputChars > 20000 || maxConcurrentRequests < 1

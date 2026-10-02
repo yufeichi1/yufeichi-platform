@@ -212,4 +212,14 @@ class AiVectorIntegrationTests {
         assertThat(awaitJob(created.getBody().path("data").path("jobId").asText()).get("status")).isEqualTo("SUCCEEDED");
         assertThat(MODEL.calls).hasValue(0); // Empty public corpus is a valid empty index, without paid probing.
     }
+    @Test void finalBatchReturningAfterDeadlineCannotActivate() throws Exception {
+        business.update("INSERT INTO blog_article(title,content,author_id,status) VALUES('Java短夹具','只有一个片段，模拟最后批次跨过总时限。',1,1)");
+        properties.setIndexTimeoutSeconds(1);
+        MODEL.afterInput = () -> { try { Thread.sleep(1500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } };
+        try {
+            var job = awaitJob(index.submit(1));
+            assertThat(job.get("status")).isEqualTo("FAILED"); assertThat(job.get("error_code")).isEqualTo("TIMEOUT");
+            assertThat(activeVersion()).isNull(); assertThat(MODEL.calls).hasValue(1);
+        } finally { properties.setIndexTimeoutSeconds(300); MODEL.afterInput = () -> { }; }
+    }
 }
