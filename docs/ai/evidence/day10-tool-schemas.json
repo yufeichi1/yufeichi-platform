@@ -1,0 +1,81 @@
+[ {
+  "name" : "getArticleDetail",
+  "description" : "Read-only published article by positive ID. Returns at most 2000 text characters with a canonical local source link and content hash. Hidden/deleted/nonexistent all return NOT_FOUND.",
+  "inputSchema" : {
+    "$schema" : "https://json-schema.org/draft/2020-12/schema",
+    "type" : "object",
+    "properties" : {
+      "id" : {
+        "type" : "integer",
+        "description" : "Positive integer article ID, at most 9007199254740991",
+        "minimum" : 1,
+        "maximum" : 9007199254740991
+      }
+    },
+    "required" : [ "id" ],
+    "additionalProperties" : false
+  }
+}, {
+  "name" : "searchArticles",
+  "description" : "Read-only literal keyword search in published article titles. Never reads drafts or deleted articles. Returns at most 5 bounded previews; not full-text or semantic search.",
+  "inputSchema" : {
+    "$schema" : "https://json-schema.org/draft/2020-12/schema",
+    "type" : "object",
+    "properties" : {
+      "keyword" : {
+        "type" : "string",
+        "description" : "1-80 characters; no %, _, backslash or control characters",
+        "minLength" : 1,
+        "maxLength" : 80
+      },
+      "limit" : {
+        "type" : "integer",
+        "description" : "Result limit: integer 1-5",
+        "minimum" : 1,
+        "maximum" : 5
+      }
+    },
+    "required" : [ "keyword", "limit" ],
+    "additionalProperties" : false
+  }
+}, {
+  "name" : "searchProjects",
+  "description" : "Read-only literal keyword search in public project names. Never reads hidden or deleted projects. Returns at most 5 bounded previews.",
+  "inputSchema" : {
+    "$schema" : "https://json-schema.org/draft/2020-12/schema",
+    "type" : "object",
+    "properties" : {
+      "keyword" : {
+        "type" : "string",
+        "description" : "1-80 characters; no %, _, backslash or control characters",
+        "minLength" : 1,
+        "maxLength" : 80
+      },
+      "limit" : {
+        "type" : "integer",
+        "description" : "Result limit: integer 1-5",
+        "minimum" : 1,
+        "maximum" : 5
+      }
+    },
+    "required" : [ "keyword", "limit" ],
+    "additionalProperties" : false
+  }
+}, {
+  "name" : "getProjectDetail",
+  "description" : "Read-only public project by positive ID. Returns at most 2000 text characters with a canonical local source link and content hash. Hidden/deleted/nonexistent all return NOT_FOUND.",
+  "inputSchema" : {
+    "$schema" : "https://json-schema.org/draft/2020-12/schema",
+    "type" : "object",
+    "properties" : {
+      "id" : {
+        "type" : "integer",
+        "description" : "Positive integer project ID, at most 9007199254740991",
+        "minimum" : 1,
+        "maximum" : 9007199254740991
+      }
+    },
+    "required" : [ "id" ],
+    "additionalProperties" : false
+  }
+} ]

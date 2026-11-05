@@ -1,0 +1,14 @@
+{
+  "kind": "assistant-source-grounding-review-not-independent-human-review",
+  "clientDate": "2026-11-05",
+  "scope": "36 answered results checked against fixed expected source bodies; 24 no-answer/boundary results checked for empty sources and standard no-answer",
+  "reviewed": 60,
+  "unsupportedFactsFound": 0,
+  "requiresUserIndependentReview": true,
+  "limitations": [
+    "Synthetic short documents, 10 public sources, 10 chunks; not production content.",
+    "No independent human evaluator or blind grading.",
+    "Substring rubric plus assistant review does not prove general semantic correctness or universal injection resistance.",
+    "Current RAG gateway drops token metadata; token counts are unavailable, not zero."
+  ]
+}

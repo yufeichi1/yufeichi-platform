@@ -1,0 +1,14 @@
+{
+  "kind": "real-model-on-isolated-synthetic-content",
+  "clientDate": "2026-11-05",
+  "summary": "preview-adopt-manual-save",
+  "rag": "source-link-opened",
+  "agent": "search-detail-answer",
+  "production": false,
+  "frames": [
+    {
+      "event": "http-response",
+      "ms": 115
+    }
+  ]
+}

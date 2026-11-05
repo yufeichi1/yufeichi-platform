@@ -1,0 +1,13 @@
+{
+  "clientDate": "2026-11-05",
+  "kind": "real-nginx-self-signed-local-https-with-wire-model-fixture",
+  "tests": 47,
+  "failures": 0,
+  "skipped": 0,
+  "sseTimingMs": {
+    "firstDeltaMs": 837.7000000001863,
+    "totalMs": 4082.2000000001863
+  },
+  "concurrency": "two-active-third-429-core-read-200-cancel-recovery",
+  "previousFailure": "One proxy 503 with 5-second wait; complete rerun passed; exact cause unproven, production network not assessed."
+}

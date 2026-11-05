@@ -1,0 +1,54 @@
+{
+  "requestId" : "63d92360-6f49-4d4a-851e-6f79ab05205a",
+  "mode" : "fixed-query",
+  "message" : "已查询公开内容，并展示每类首项的原文摘录；可点击来源查看完整内容。",
+  "matches" : [ {
+    "sourceType" : "article",
+    "sourceId" : 101,
+    "title" : "Java公开文章",
+    "excerpt" : "公开摘要",
+    "url" : "/articles/101",
+    "snapshotHash" : "e903015a0f3e330a61e8f4731e959c2673e02e781fe05c6086019fcae440e52f"
+  }, {
+    "sourceType" : "project",
+    "sourceId" : 201,
+    "title" : "Java公开项目",
+    "excerpt" : "Java项目正文",
+    "url" : "/projects/201",
+    "snapshotHash" : "4cf7659661dff416a5422ae30f0a778e5cebeaaf9d302df3d0ba88a997167e3a"
+  } ],
+  "details" : [ {
+    "sourceType" : "article",
+    "sourceId" : 101,
+    "title" : "Java公开文章",
+    "text" : "公开摘要\n\nJava21业务正文",
+    "url" : "/articles/101",
+    "contentHash" : "586dc5c76ee0aa722bcc4995858f28584b2d28a886bd7725b76f5b3d6f399b15",
+    "truncated" : false
+  }, {
+    "sourceType" : "project",
+    "sourceId" : 201,
+    "title" : "Java公开项目",
+    "text" : "Java项目正文\n\nJava,MySQL",
+    "url" : "/projects/201",
+    "contentHash" : "f8a076e89e7c3d1420d1f089b635536b078571ac4157768df7821aa1bc6a25ef",
+    "truncated" : false
+  } ],
+  "steps" : [ {
+    "tool" : "searchArticles",
+    "outcome" : "FOUND",
+    "resultCount" : 1
+  }, {
+    "tool" : "getArticleDetail",
+    "outcome" : "FOUND",
+    "resultCount" : 1
+  }, {
+    "tool" : "searchProjects",
+    "outcome" : "FOUND",
+    "resultCount" : 1
+  }, {
+    "tool" : "getProjectDetail",
+    "outcome" : "FOUND",
+    "resultCount" : 1
+  } ]
+}

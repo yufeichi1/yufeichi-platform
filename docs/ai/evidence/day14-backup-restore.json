@@ -1,0 +1,12 @@
+{
+  "kind": "disposable-fixture-backup-restore-not-production-backup",
+  "mysqlHistory": "1\t1\t1457891991\n2\t1\t-2112776796\n3\t1\t-663793275\n4\t1\t2115728188\n5\t1\t1792074382\n6\t1\t1697554631\n7\t1\t-1290070349\n8\t1\t-728566509\n9\t1\t-1751204810\n10\t1\t1396291764\n11\t1\t-1419457953\n12\t1\t-151986281",
+  "articles": "1",
+  "vectors": "1",
+  "hashes": {
+    "mysql.sql": "7138ebc5fff68b33df7da22631753612979c9238425e8c51ef63c562bd6312c6",
+    "pg.sql": "6f30c6440fa7f60cbe91703baa352a02a68e2f9511b0f94380a88521633bec63",
+    "upload-fixture.txt": "3cbe4ded6458039768bff826bb86d54ff2978811f5d73f1584373d7530269410"
+  },
+  "passed": true
+}

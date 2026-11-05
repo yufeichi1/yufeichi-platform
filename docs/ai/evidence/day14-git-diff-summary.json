@@ -1,0 +1,326 @@
+{
+  "kind": "cumulative-uncommitted-Day7-Day14-not-only-this-turn",
+  "baseHead": "6694f896472f346a5c4c0c2fd08ec6a1d087d890",
+  "trackedChanges": [
+    {
+      "path": ".gitignore",
+      "added": "2",
+      "removed": "0"
+    },
+    {
+      "path": "README.md",
+      "added": "0",
+      "removed": "184"
+    },
+    {
+      "path": "deploy/Day4-前端构建与Nginx路由说明.md",
+      "added": "0",
+      "removed": "69"
+    },
+    {
+      "path": "deploy/Day5-生产配置与账号初始化.md",
+      "added": "0",
+      "removed": "53"
+    },
+    {
+      "path": "deploy/production/nginx.conf",
+      "added": "36",
+      "removed": "2"
+    },
+    {
+      "path": "deploy/production/verify-host.py",
+      "added": "1",
+      "removed": "1"
+    },
+    {
+      "path": "docs/Day1-执行与验收报告.md",
+      "added": "0",
+      "removed": "204"
+    },
+    {
+      "path": "docs/Day2-执行与验收报告.md",
+      "added": "0",
+      "removed": "160"
+    },
+    {
+      "path": "docs/Day3-执行与验收报告.md",
+      "added": "0",
+      "removed": "105"
+    },
+    {
+      "path": "docs/Day4-执行与验收报告.md",
+      "added": "0",
+      "removed": "108"
+    },
+    {
+      "path": "docs/Day5-执行与验收报告.md",
+      "added": "0",
+      "removed": "93"
+    },
+    {
+      "path": "docs/Day6-执行与验收报告.md",
+      "added": "0",
+      "removed": "258"
+    },
+    {
+      "path": "docs/Day7-执行与验收报告.md",
+      "added": "0",
+      "removed": "97"
+    },
+    {
+      "path": "docs/V1.0-收尾执行与验收报告.md",
+      "added": "0",
+      "removed": "144"
+    },
+    {
+      "path": "docs/V1.0-进度对齐.md",
+      "added": "0",
+      "removed": "117"
+    },
+    {
+      "path": "docs/ai/README.md",
+      "added": "122",
+      "removed": "9"
+    },
+    {
+      "path": "docs/interview.md",
+      "added": "0",
+      "removed": "28"
+    },
+    {
+      "path": "scripts/ai-test-provider.mjs",
+      "added": "23",
+      "removed": "0"
+    },
+    {
+      "path": "scripts/test-web.mjs",
+      "added": "95",
+      "removed": "9"
+    },
+    {
+      "path": "yufeichi-server/.env.example",
+      "added": "12",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/pom.xml",
+      "added": "5",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiConfiguration.java",
+      "added": "21",
+      "removed": "3"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiKnowledgeIndex.java",
+      "added": "86",
+      "removed": "9"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiKnowledgeSources.java",
+      "added": "15",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiProperties.java",
+      "added": "21",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiRequestGuard.java",
+      "added": "26",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiVectorStore.java",
+      "added": "33",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/ai/SpringAiModelGateway.java",
+      "added": "49",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/common/error/ErrorCode.java",
+      "added": "3",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/config/SecurityConfig.java",
+      "added": "15",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/service/ArticleService.java",
+      "added": "6",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-server/src/main/java/com/yufeichi/server/service/ProjectService.java",
+      "added": "9",
+      "removed": "2"
+    },
+    {
+      "path": "yufeichi-server/src/main/resources/application.yml",
+      "added": "8",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/AiIntegrationTests.java",
+      "added": "22",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/AiVectorIntegrationTests.java",
+      "added": "6",
+      "removed": "2"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/YufeichiServerApplicationTests.java",
+      "added": "3",
+      "removed": "3"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/server/ai/AiConfigurationTest.java",
+      "added": "12",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/server/ai/AiRequestGuardTest.java",
+      "added": "23",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-server/src/test/java/com/yufeichi/server/ai/AiWireFixture.java",
+      "added": "2",
+      "removed": "2"
+    },
+    {
+      "path": "yufeichi-server/src/test/resources/application-test.yml",
+      "added": "6",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-web/playwright.config.ts",
+      "added": "6",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-web/src/api/ai.ts",
+      "added": "4",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-web/src/components/AiIndexPanel.vue",
+      "added": "7",
+      "removed": "2"
+    },
+    {
+      "path": "yufeichi-web/src/layouts/FrontLayout.vue",
+      "added": "1",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-web/src/router/index.ts",
+      "added": "4",
+      "removed": "0"
+    },
+    {
+      "path": "yufeichi-web/src/views/AiWorkspace.vue",
+      "added": "3",
+      "removed": "1"
+    },
+    {
+      "path": "yufeichi-web/tests/ai-editor.spec.ts",
+      "added": "4",
+      "removed": "1"
+    }
+  ],
+  "untrackedFilesExcludingOriginalVscode": [
+    "docs/ai/Day10-执行与验收报告.md",
+    "docs/ai/Day11-执行与验收报告.md",
+    "docs/ai/Day12-Day14-执行与验收报告.md",
+    "docs/ai/Day7-执行与验收报告.md",
+    "docs/ai/Day8-Day9-执行与验收报告.md",
+    "docs/ai/architecture.md",
+    "docs/ai/deployment.md",
+    "docs/ai/evaluation.md",
+    "docs/ai/evidence/day10-tool-schemas.json",
+    "docs/ai/evidence/day10-workflow.json",
+    "docs/ai/evidence/day11-agent-live.json",
+    "docs/ai/evidence/day11-task-cases.json",
+    "docs/ai/evidence/day12-backend-tests.json",
+    "docs/ai/evidence/day12-migration-check.json",
+    "docs/ai/evidence/day13-evaluation-final.csv",
+    "docs/ai/evidence/day13-evaluation-final.json",
+    "docs/ai/evidence/day13-evaluation-initial.json",
+    "docs/ai/evidence/day13-grounding-review.json",
+    "docs/ai/evidence/day14-agent-display.txt",
+    "docs/ai/evidence/day14-agent.png",
+    "docs/ai/evidence/day14-backup-provenance.json",
+    "docs/ai/evidence/day14-backup-restore.json",
+    "docs/ai/evidence/day14-delivery-audit.json",
+    "docs/ai/evidence/day14-demo.json",
+    "docs/ai/evidence/day14-git-diff-summary.json",
+    "docs/ai/evidence/day14-historical-build.json",
+    "docs/ai/evidence/day14-jvm-resources.json",
+    "docs/ai/evidence/day14-local-disk.json",
+    "docs/ai/evidence/day14-local-resources.jsonl",
+    "docs/ai/evidence/day14-mobile.png",
+    "docs/ai/evidence/day14-nginx-tests.json",
+    "docs/ai/evidence/day14-provider-reservations.json",
+    "docs/ai/evidence/day14-rag-display.txt",
+    "docs/ai/evidence/day14-rag.png",
+    "docs/ai/evidence/day14-restore-resources.jsonl",
+    "docs/ai/evidence/day14-runtime.json",
+    "docs/ai/evidence/day14-summary.png",
+    "docs/ai/evidence/day14-three-scenes.webm",
+    "docs/ai/evidence/day7-rag-smoke.json",
+    "docs/ai/evidence/day8-day9-lifecycle-smoke.json",
+    "docs/ai/testing.md",
+    "docs/ai/求职项目描述与演示.md",
+    "scripts/build-ai-release.py",
+    "scripts/verify-isolated-ai-backup.mjs",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AgentRequest.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiAgentController.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiAgentService.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiContentChanged.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiKnowledgeChatController.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiKnowledgeService.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/AiToolModelGateway.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/KnowledgeRequest.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/KnowledgeResponse.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/SiteReadController.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/SiteReadToolCatalog.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/SiteReadTools.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/SiteReadWorkflow.java",
+    "yufeichi-server/src/main/java/com/yufeichi/server/ai/ToolQueryRequest.java",
+    "yufeichi-server/src/main/resources/db/migration/V12__ai_index_sync.sql",
+    "yufeichi-server/src/test/java/com/yufeichi/AiAgentIntegrationTests.java",
+    "yufeichi-server/src/test/java/com/yufeichi/AiKnowledgeIntegrationTests.java",
+    "yufeichi-server/src/test/java/com/yufeichi/LiveAgentSmoke.java",
+    "yufeichi-server/src/test/java/com/yufeichi/LiveAiEvaluation.java",
+    "yufeichi-server/src/test/java/com/yufeichi/LiveLifecycleSmoke.java",
+    "yufeichi-server/src/test/java/com/yufeichi/LiveRagSmoke.java",
+    "yufeichi-server/src/test/java/com/yufeichi/SiteReadIntegrationTests.java",
+    "yufeichi-server/src/test/java/com/yufeichi/server/ai/AiAgentServiceTest.java",
+    "yufeichi-server/src/test/java/com/yufeichi/server/ai/SiteReadToolsTest.java",
+    "yufeichi-server/src/test/java/com/yufeichi/server/ai/SiteReadWorkflowTest.java",
+    "yufeichi-server/src/test/java/com/yufeichi/server/ai/SpringAiToolTransportTest.java",
+    "yufeichi-server/src/test/resources/ai-eval-v1.json",
+    "yufeichi-web/src/api/agent.ts",
+    "yufeichi-web/src/api/knowledge.ts",
+    "yufeichi-web/src/api/tools.ts",
+    "yufeichi-web/src/views/front/AgentView.vue",
+    "yufeichi-web/src/views/front/KnowledgeView.vue",
+    "yufeichi-web/src/views/front/ToolsView.vue",
+    "yufeichi-web/tests/ai-agent.spec.ts",
+    "yufeichi-web/tests/ai-knowledge.spec.ts",
+    "yufeichi-web/tests/ai-nginx.spec.ts",
+    "yufeichi-web/tests/ai-showcase-live.spec.ts",
+    "yufeichi-web/tests/ai-tools.spec.ts"
+  ],
+  "note": "Includes 13 preexisting document deletions; preserved, unstaged. Do not git add -A blindly."
+}

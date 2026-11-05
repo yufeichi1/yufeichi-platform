@@ -1,0 +1,33 @@
+{
+  "unknownQuestion": "本站推荐报考哪所大学研究生，录取概率是多少？",
+  "chatModel": "deepseek-flash",
+  "embeddingModel": "qwen3.7-text-embedding-flash",
+  "known": {
+    "answer": "本演示项目的构建标识是CONSTELLATION-427。",
+    "answered": true,
+    "sources": [
+      {
+        "id": "S1",
+        "sourceType": "article",
+        "sourceId": 701,
+        "title": "公开本地RAG验收夹具",
+        "url": "/articles/701"
+      }
+    ],
+    "indexVersion": "c6279299-778c-4613-9cf8-8894d682045e",
+    "requestId": "348229e4-bdc9-4de9-852b-50a78efcac2d"
+  },
+  "knownQuestion": "本演示项目的构建标识是什么？",
+  "unknown": {
+    "answer": "站内暂无足够依据回答这个问题。请尝试更具体的文章或项目问题。",
+    "answered": false,
+    "sources": [],
+    "indexVersion": "c6279299-778c-4613-9cf8-8894d682045e",
+    "requestId": "3c80f078-9898-40b4-928a-9c4adedc039e"
+  },
+  "reservedProviderCalls": "4",
+  "dimensions": 1024,
+  "verificationCompletedAt": "2026-10-03T00:00:09+08:00",
+  "scope": "explicit live model smoke over disposable local fixtures; not production content",
+  "similarityThreshold": 0.5
+}

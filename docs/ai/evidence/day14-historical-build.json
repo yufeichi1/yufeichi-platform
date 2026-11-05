@@ -1,0 +1,19 @@
+{
+  "kind": "actual-HEAD-source-export-built-with-complete-tests",
+  "baseHead": "6694f896472f346a5c4c0c2fd08ec6a1d087d890",
+  "tests": 142,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "jarSha256": "c38883e1e558b52c23650727f46a80ab2d75cb329586ba7a289757a7a5627c35",
+  "note": "Historical Day6 baseline, not a claim about arbitrary old JAR compatibility.",
+  "newSchemaCompatibility": {
+    "passed": true,
+    "migrationVersion": 12,
+    "migrationChecksumsUnchanged": true,
+    "login": true,
+    "articleReadWrite": true,
+    "aiEnabled": false,
+    "log": "ai-day14-rollback.log"
+  }
+}

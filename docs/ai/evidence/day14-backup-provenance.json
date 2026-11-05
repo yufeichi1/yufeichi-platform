@@ -1,0 +1,5 @@
+{
+  "kind": "reused-real-demo-dumps-no-new-model-calls",
+  "source": "backup/mysql.sql + backup/pg.sql",
+  "reason": "MySQL init readiness fixed; replay only disposable databases"
+}

@@ -1,0 +1,3 @@
+{"BlockIO":"87.8MB / 316MB","CPUPerc":"0.49%","Container":"yufeichi-day3-mysql-ae3fa0fd","ID":"0ba82b6d5e5b","MemPerc":"5.87%","MemUsage":"456.3MiB / 7.595GiB","Name":"yufeichi-day3-mysql-ae3fa0fd","NetIO":"151kB / 162kB","PIDs":"61"}
+{"BlockIO":"561kB / 0B","CPUPerc":"0.21%","Container":"yufeichi-day3-redis-ae3fa0fd","ID":"9db1bf80bbe9","MemPerc":"0.09%","MemUsage":"6.926MiB / 7.595GiB","Name":"yufeichi-day3-redis-ae3fa0fd","NetIO":"7.74kB / 1.8kB","PIDs":"6"}
+{"BlockIO":"8.96MB / 0B","CPUPerc":"0.00%","Container":"yufeichi-nginx-ae3fa0fd","ID":"ddeff9cef733","MemPerc":"27.33%","MemUsage":"34.98MiB / 128MiB","Name":"yufeichi-nginx-ae3fa0fd","NetIO":"187kB / 3.05MB","PIDs":"33"}

@@ -1,0 +1,113 @@
+{
+  "runs": [
+    {
+      "response": {
+        "requestId": "555c868b-1b5d-4f47-adf5-cef18d3695f7",
+        "mode": "site-agent",
+        "answered": true,
+        "answer": "标题含 AgentComet 的文章是《AgentComet 公开验收夹具》。其详情原文写明：本测试的构建标识是 COMET-731。",
+        "sources": [
+          {
+            "id": "S1",
+            "sourceType": "article",
+            "sourceId": 711,
+            "title": "AgentComet 公开验收夹具",
+            "url": "/articles/711",
+            "contentHash": "71c5696a197c5a09a39194c79aff65ed90adcccd43031342a87a71dfb8f6d7ef"
+          }
+        ],
+        "steps": [
+          {
+            "round": 1,
+            "tool": "searchArticles",
+            "outcome": "FOUND",
+            "resultCount": 1
+          },
+          {
+            "round": 2,
+            "tool": "getArticleDetail",
+            "outcome": "FOUND",
+            "resultCount": 1
+          }
+        ],
+        "modelRounds": 3,
+        "usage": [
+          {
+            "round": 1,
+            "inputTokens": 1050,
+            "outputTokens": 69
+          },
+          {
+            "round": 2,
+            "inputTokens": 1203,
+            "outputTokens": 38
+          },
+          {
+            "round": 3,
+            "inputTokens": 569,
+            "outputTokens": 49
+          }
+        ]
+      },
+      "chatModel": "deepseek-flash",
+      "question": "请查询标题含 AgentComet 的文章，读取详情后告诉我构建标识。",
+      "reservedProviderCalls": "3",
+      "transport": "initial-jdk"
+    },
+    {
+      "question": "请查询标题含 AgentComet 的文章，读取详情后告诉我构建标识。",
+      "reservedProviderCalls": "3",
+      "response": {
+        "requestId": "198be066-14c0-42fa-b84e-403aee4d2721",
+        "mode": "site-agent",
+        "answered": true,
+        "answer": "标题含 AgentComet 的文章为《AgentComet 公开验收夹具》。其详情中给出：本测试的构建标识是 COMET-731，使用 Java21。",
+        "sources": [
+          {
+            "id": "S1",
+            "sourceType": "article",
+            "sourceId": 711,
+            "title": "AgentComet 公开验收夹具",
+            "url": "/articles/711",
+            "contentHash": "71c5696a197c5a09a39194c79aff65ed90adcccd43031342a87a71dfb8f6d7ef"
+          }
+        ],
+        "steps": [
+          {
+            "round": 1,
+            "tool": "searchArticles",
+            "outcome": "FOUND",
+            "resultCount": 1
+          },
+          {
+            "round": 2,
+            "tool": "getArticleDetail",
+            "outcome": "FOUND",
+            "resultCount": 1
+          }
+        ],
+        "modelRounds": 3,
+        "usage": [
+          {
+            "round": 1,
+            "inputTokens": 1050,
+            "outputTokens": 55
+          },
+          {
+            "round": 2,
+            "inputTokens": 1203,
+            "outputTokens": 38
+          },
+          {
+            "round": 3,
+            "inputTokens": 568,
+            "outputTokens": 56
+          }
+        ]
+      },
+      "chatModel": "deepseek-flash",
+      "transport": "final-reactor-netty"
+    }
+  ],
+  "reservedProviderCallsTotal": 6
+}
