@@ -1,6 +1,6 @@
 # Yufeichi AI：Day1—Day14 开发与交付说明
 
-已实现受文章管理权限保护的摘要 API/SSE、编辑页预览与人工采用，以及 `/admin/ai` 摘要工作台。另提供独立Embedding/pgvector和管理员手动重建站内内容索引。Day7新增站内RAG问答，Day8增加默认关闭的匿名开关和安全复核，Day9增加自动索引同步，Day10增加四个只读工具和固定关键词查询页面，Day11增加模型选择工具的受控只读助手；线上已发布范围仍为Day1—Day6。
+已实现受文章管理权限保护的摘要 API/SSE、编辑页预览与人工采用，以及 `/admin/ai` 摘要工作台。另提供独立Embedding/pgvector和管理员手动重建站内内容索引。Day7新增站内RAG问答，Day8增加默认关闭的匿名开关和安全复核，Day9增加自动索引同步，Day10增加四个只读工具和固定关键词查询页面，Day11增加模型选择工具的受控只读助手；2026-11-05已将Day1—Day14范围正式发布，生产验收见[正式发布报告](Day14-正式发布与线上验收报告.md)。生产已开启受配额控制的匿名问答，工具与助手仍需登录；当前公开来源为0，问答返回无依据而不编造引用。
 
 ## 运行基线
 
@@ -321,13 +321,13 @@ Spring AI内部工具执行关闭，模型不能触发隐式循环；每轮由Ai
 
 已真实验证`deepseek-flash`非思考模式的searchArticles → getArticleDetail → answer。DeepSeek助手工具调用固定reasoning_effort=none，避免思考工具协议要求额外reasoning_content回传；这不改变原摘要/RAG的reasoning配置。其他供应商模型、思考工具模式及生产部署尚未验收，不以接口兼容代替真实能力验证。依据[Spring AI1.1工具文档](https://docs.spring.io/spring-ai/reference/1.1/api/tools.html)、[DeepSeek Tool Calls](https://api-docs.deepseek.com/guides/tool_calls/)、[DeepSeek思考模式说明](https://api-docs.deepseek.com/guides/thinking_mode/)，查询2026-10-04。
 
-真实trace、10条任务回归和验证命令见[Day11执行与验收报告](./Day11-执行与验收报告.md)。默认构建不调用真实模型；显式`AI_AGENT_SMOKE_ENABLED=true`后运行LiveAgentSmoke使用独立MySQL/Redis，最多3次真实Chat请求，不连接线上库。Day14已补助手SSE代理并完成本机隔离HTTPS验收；正式生产环境仍待发布后复验，本次没有上线。
+真实trace、10条任务回归和验证命令见[Day11执行与验收报告](./Day11-执行与验收报告.md)。默认构建不调用真实模型；显式`AI_AGENT_SMOKE_ENABLED=true`后运行LiveAgentSmoke使用独立MySQL/Redis，最多3次真实Chat请求，不连接线上库。Day14已补助手SSE代理并完成本机隔离HTTPS验收；正式生产HTTPS、真实模型、停止取消和浏览器验收已于2026-11-05通过，见正式发布报告；公开内容为空，非空引用链待真实内容发布后补验。
 
 浏览器取消回归暴露了原JDK WebClient空闲模型响应无法及时关闭连接的问题。Chat异步传输改用Reactor Netty：独立连接池上限与AI并发上限一致，等待队列8，连接/响应超时受控，关闭底层重试和重定向；资源由Spring生命周期释放。只新增Boot管理的reactor-netty-http依赖，不升级Boot/AI，不改变Tomcat或业务接口。实际TCP取消专项与浏览器停止验收用于确认连接释放，而非只检查页面提示或服务层CANCEL日志。
 
 ## Day12—Day14 交付导航
 
-2026-11-05完成故障回归与固定30题两组真实评测；发布以本机隔离Nginx、自签HTTPS、非空备份恢复、旧JAR/V12兼容预演和候选包为范围。未连接生产，未提交/推送Git，正式上线需另行明确要求。
+2026-11-05完成故障回归与固定30题两组真实评测；发布以本机隔离Nginx、自签HTTPS、非空备份恢复、旧JAR/V12兼容预演和候选包为范围。该预演阶段未连接生产；随后用户明确授权提交、推送和上线，已完成正式发布，见[正式发布报告](Day14-正式发布与线上验收报告.md)。
 
 - [架构与取舍](architecture.md)
 - [评测与真实结果](evaluation.md)

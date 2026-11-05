@@ -1,0 +1,174 @@
+{
+  "clientDate": "2026-11-05",
+  "observedAtUtc": "2026-11-05T12:15:16.952861+00:00",
+  "release": {
+    "sourceCommit": "7ce1ceff140ba1076cbaf64218ae94fb9a3ee0a8",
+    "release": "20261105T120255Z-7ce1cef",
+    "previousBackend": "/opt/yufeichi/backend/releases/20261002T153303Z-11b70f0",
+    "previousFrontend": "/var/www/yufeichi-app/releases/20261002T153303Z-11b70f0",
+    "envBackup": "/var/lib/yufeichi/release-audit/backend-env-20261105T120255Z-7ce1cef",
+    "nginxBackup": "/var/lib/yufeichi/release-audit/nginx-20261105T120255Z-7ce1cef",
+    "jarSha256": "ca0bad79580f2d52be7a837129b16ec734654107b1c056b091af32bdcffe1237",
+    "predeployBackup": "backup-20261105T115458Z-756119",
+    "activated": true,
+    "migrationHistory": "1\t1\t1457891991\n2\t1\t-2112776796\n3\t1\t-663793275\n4\t1\t2115728188\n5\t1\t1792074382\n6\t1\t1697554631\n7\t1\t-1290070349\n8\t1\t-728566509\n9\t1\t-1751204810\n10\t1\t1396291764\n11\t1\t-1419457953\n12\t1\t-151986281",
+    "publicSources": {
+      "articles": 0,
+      "projects": 0
+    },
+    "aiOffCoreVerified": true
+  },
+  "httpAcceptance": {
+    "clientDate": "2026-11-05",
+    "base": "https://yufeichi.com",
+    "checks": {
+      "corePublicRead": true,
+      "loginWrongPasswordEmptyJsonMe": true,
+      "authenticationAndInputBoundaries": true,
+      "realSummaryOverHttps": true,
+      "emptyPublicIndexIdempotence": true,
+      "readOnlyWorkflowNoPublicResults": true,
+      "realAgentNoFabricationOnEmptySite": true,
+      "publicRagEmptyAnswerAndSpoofResistantQuota": true,
+      "logoutRevocation": true,
+      "productionDocsHiddenAndCors": true,
+      "productionUploadAndNginxRead": true
+    },
+    "summarySse": {
+      "frames": 65,
+      "deltas": 62,
+      "firstFrameSeconds": 0.08069586753845215,
+      "firstDeltaSeconds": 1.1894802022725344,
+      "totalSeconds": 1.4737427067011595
+    },
+    "index": {
+      "version": "d8455461-fc81-491f-9058-f0a3e0493511",
+      "publicSources": 0,
+      "chunks": 0,
+      "idempotent": true
+    },
+    "agent": {
+      "steps": [
+        {
+          "round": 1,
+          "tool": "searchArticles",
+          "outcome": "NOT_FOUND",
+          "resultCount": 0
+        }
+      ],
+      "modelRounds": 2,
+      "usage": [
+        {
+          "round": 1,
+          "inputTokens": 1051,
+          "outputTokens": 55
+        },
+        {
+          "round": 2,
+          "inputTokens": 1128,
+          "outputTokens": 13
+        }
+      ],
+      "answered": false,
+      "sources": [],
+      "timing": {
+        "frames": 4,
+        "deltas": 0,
+        "firstFrameSeconds": 0.04441695287823677,
+        "firstDeltaSeconds": null,
+        "totalSeconds": 2.1747603733092546
+      }
+    },
+    "retainedAcceptanceImage": {
+      "id": 9,
+      "url": "/uploads/other/eca6fd42-f076-4e1b-9036-3783fadf1f90.png",
+      "sha256": "836e03f287a153693eecd3b75e4c8ffefbc38407f1e7784a4c2a8f4471f6650a",
+      "note": "One labelled operational upload retained; no delete API, no business article/project created."
+    },
+    "models": {
+      "chat": "deepseek-flash",
+      "embedding": "qwen3.7-text-embedding-flash",
+      "dimensions": 1024
+    },
+    "passed": true
+  },
+  "cancel": {
+    "requestId": "ef40639a-8e1f-4fff-b68e-1cdb97be9f01",
+    "serverCancelled": true,
+    "safeLogLines": [
+      "2026-11-05 20:10:45.185 [ai-net-epoll-2] INFO  com.yufeichi.server.ai.AiSummaryService - ai requestId=ef40639a-8e1f-4fff-b68e-1cdb97be9f01 operation=summary outcome=CANCEL durationMs=1063"
+    ]
+  },
+  "service": "NRestarts=0\nMemoryCurrent=402747392\nActiveState=active",
+  "tlsCertificateNotAfter": "Dec 24 07:06:24 2026 GMT",
+  "backupFiles": {
+    "before": {
+      "name": "backup-20261105T115458Z-756119.tar.gz",
+      "sha256": "fb152d986ad5aad17995ddbb2dad8ab5a65e87aa55fdea591792d970d3fc116e",
+      "bytes": 14696,
+      "offsiteVerified": true,
+      "offsiteInternalFiles": 6
+    },
+    "after": {
+      "name": "backup-20261105T121012Z-769956.tar.gz",
+      "sha256": "84495b50f7b1200d9e7b16603d1ed439e9bfd0bcfc1db8e500b1da29f912365d",
+      "bytes": 15181,
+      "offsiteVerified": true,
+      "offsiteInternalFiles": 6
+    }
+  },
+  "predeployRestore": {
+    "kind": "production-backup-restored-only-to-owned-no-network-container",
+    "passed": true,
+    "backup": "backup-20261105T115458Z-756119",
+    "tableCounts": {
+      "users": "2",
+      "roles": "2",
+      "articles": "3",
+      "projects": "1",
+      "files": "8"
+    },
+    "migrationRows": 11,
+    "uploadLinksChecked": 8,
+    "configArchiveReadable": true
+  },
+  "postdeployRestore": {
+    "kind": "production-backup-restored-only-to-owned-no-network-container",
+    "passed": true,
+    "backup": "backup-20261105T121012Z-769956",
+    "tableCounts": {
+      "users": "2",
+      "roles": "2",
+      "articles": "3",
+      "projects": "1",
+      "files": "9"
+    },
+    "migrationRows": 12,
+    "uploadLinksChecked": 9,
+    "configArchiveReadable": true
+  },
+  "embeddingSmoke": {
+    "passed": true,
+    "dimensions": 1024,
+    "calls": 1,
+    "businessWrites": 0
+  },
+  "browserAcceptance": {
+    "kind": "real-production-https-browser-no-business-article-project-writes",
+    "checks": {
+      "realLogin": true,
+      "realSummaryAdoptionWithoutSaving": true,
+      "realAgentEmptySite": true,
+      "fixedTools": true,
+      "mobile375": true,
+      "logoutRevocation": true,
+      "anonymousRagNoFabricatedSources": true,
+      "refreshClearsQuestion": true,
+      "noPageErrors": true
+    },
+    "passed": true
+  },
+  "userScope": "User explicitly authorized Git push and production deployment; standalone investigation of earlier local proxy 503 deferred at user request.",
+  "temporaryServerCredentialsRemoved": true,
+  "temporaryTransferCopiesRemoved": true
+}
