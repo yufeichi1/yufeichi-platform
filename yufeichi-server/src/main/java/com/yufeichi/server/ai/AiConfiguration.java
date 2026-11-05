@@ -14,7 +14,8 @@ import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.http.client.reactive.JdkClientHttpConnector;
+import org.springframework.http.client.ReactorResourceFactory;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -54,8 +55,23 @@ public class AiConfiguration {
     @Bean
     @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
     @Conditional(ProviderConfigured.class)
+    ReactorResourceFactory aiReactiveResources(AiProperties properties) {
+        var resources = new ReactorResourceFactory();
+        resources.setUseGlobalResources(false);
+        resources.setConnectionProviderSupplier(() -> reactor.netty.resources.ConnectionProvider.builder("ai-chat")
+                .maxConnections(properties.getMaxConcurrentRequests()).pendingAcquireMaxCount(8)
+                .pendingAcquireTimeout(Duration.ofSeconds(properties.getConnectTimeoutSeconds())).build());
+        resources.setLoopResourcesSupplier(() -> reactor.netty.resources.LoopResources.create("ai-net", properties.getMaxConcurrentRequests(), true));
+        resources.setShutdownQuietPeriod(Duration.ZERO);
+        resources.setShutdownTimeout(Duration.ofSeconds(2));
+        return resources;
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
+    @Conditional(ProviderConfigured.class)
     @ConditionalOnMissingBean(AiModelGateway.class)
-    AiModelGateway aiModelGateway(AiProperties properties, ThreadPoolExecutor aiHttpExecutor) {
+    SpringAiModelGateway aiModelGateway(AiProperties properties, ThreadPoolExecutor aiHttpExecutor, ReactorResourceFactory aiReactiveResources) {
         properties.validate();
         Builder jdk = java.net.http.HttpClient.newBuilder()
                 .executor(aiHttpExecutor).connectTimeout(Duration.ofSeconds(properties.getConnectTimeoutSeconds()));
@@ -65,7 +81,9 @@ public class AiConfiguration {
         var api = OpenAiApi.builder().baseUrl(properties.getBaseUrl()).apiKey(properties.getApiKey())
                 .completionsPath(properties.getCompletionsPath())
                 .restClientBuilder(RestClient.builder().requestFactory(factory))
-                .webClientBuilder(WebClient.builder().clientConnector(new JdkClientHttpConnector(http))
+                .webClientBuilder(WebClient.builder().clientConnector(new ReactorClientHttpConnector(aiReactiveResources,
+                        client -> client.option(io.netty.channel.ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeoutSeconds() * 1000)
+                                .responseTimeout(Duration.ofSeconds(properties.getRequestTimeoutSeconds())).followRedirect(false).disableRetry(true)))
                         .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(65536)))
                 .build();
         var model = OpenAiChatModel.builder().openAiApi(api)

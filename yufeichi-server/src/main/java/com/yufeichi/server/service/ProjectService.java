@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 @Transactional(readOnly=true)
 public class ProjectService {
     private final ProjectMapper projects;
+    private final org.springframework.context.ApplicationEventPublisher events;
     public PageResult<ProjectVO> list(ProjectQuery query,boolean publicOnly) {
         var where=new LambdaQueryWrapper<Project>()
                 .eq(publicOnly,Project::getStatus,1)
@@ -36,23 +37,29 @@ public class ProjectService {
     @Transactional
     public ProjectVO save(Long id,ProjectWriteRequest request) {
         Project p=id==null ? new Project() : lock(id);
+        boolean wasPublic=id!=null && p.getStatus()==1;
         p.setName(request.name().trim()); p.setDescription(request.description());
         p.setCoverUrl(request.coverUrl()); p.setGithubUrl(request.githubUrl()); p.setDemoUrl(request.demoUrl());
         p.setTechStack(request.techStack()); p.setSortOrder(request.sortOrder()==null ? 0 : request.sortOrder());
         p.setStatus(request.status()==null ? 0 : request.status()); p.setDeleted(0);
         if(id==null) projects.insert(p);
         else { p.setUpdatedAt(LocalDateTime.now()); projects.updateById(p); }
+        if(wasPublic || p.getStatus()==1) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("project",p.getId()));
         return view(p);
     }
     @Transactional
     @com.yufeichi.server.security.AuditAction("project.visibility")
     public ProjectVO status(long id,int status) {
-        Project p=lock(id); p.setStatus(status); p.setUpdatedAt(LocalDateTime.now()); projects.updateById(p);
+        Project p=lock(id); boolean wasPublic=p.getStatus()==1; p.setStatus(status); p.setUpdatedAt(LocalDateTime.now()); projects.updateById(p);
+        if(wasPublic || p.getStatus()==1) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("project",p.getId()));
         return view(p);
     }
     @Transactional
     @com.yufeichi.server.security.AuditAction("project.delete")
-    public void delete(long id) { lock(id); projects.deleteById(id); }
+    public void delete(long id) {
+        Project p=lock(id); projects.deleteById(id);
+        if(p.getStatus()==1) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("project",id));
+    }
     private Project lock(long id) {
         Project p=projects.selectForUpdate(id);
         if(p==null) throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);

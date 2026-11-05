@@ -51,6 +51,7 @@ class AiIntegrationTests {
     @Autowired TestRestTemplate http;
     @Autowired JdbcTemplate jdbc;
     @Autowired StringRedisTemplate redis;
+    @Autowired com.yufeichi.server.ai.AiProperties properties;
     private String admin;
     private String reader;
 
@@ -135,6 +136,27 @@ class AiIntegrationTests {
         assertThat(response.getBody()).contains("63002");
         MODEL.reset("normal");
         assertThat(post(admin, "", Map.of("content", "正文")).getStatusCode().value()).isEqualTo(200);
+    }
+    @Test void provider500IsSafeBoundedAndCoreBusinessRemainsAvailable() {
+        MODEL.reset("server-error");
+        var response = post(admin, "", Map.of("content", "故障验收正文"));
+        assertThat(response.getStatusCode().value()).isEqualTo(503);
+        assertThat(response.getBody()).doesNotContain("PRIVATE", "fixture-not-a-real-key");
+        assertThat(MODEL.calls.get()).isBetween(1, 2);
+        assertThat(http.getForEntity("/api/articles?page=1&size=5", String.class).getStatusCode().value()).isEqualTo(200);
+        MODEL.reset("normal");
+        assertThat(post(admin, "", Map.of("content", "恢复正文")).getStatusCode().value()).isEqualTo(200);
+    }
+    @Test void disabledAiRejectsBeforeProviderAndDoesNotDisableBusiness() {
+        properties.setEnabled(false);
+        try {
+            assertThat(post(admin, "", Map.of("content", "正文")).getStatusCode().value()).isEqualTo(503);
+            assertThat(post(admin, "/stream", Map.of("content", "正文")).getStatusCode().value()).isEqualTo(503);
+            assertThat(MODEL.calls).hasValue(0);
+            assertThat(http.getForEntity("/api/health", String.class).getStatusCode().value()).isEqualTo(200);
+            assertThat(http.getForEntity("/api/projects", String.class).getStatusCode().value()).isEqualTo(200);
+        } finally { properties.setEnabled(true); }
+        assertThat(post(admin, "", Map.of("content", "恢复正文")).getStatusCode().value()).isEqualTo(200);
     }
     @Test void streamIsIncrementalOverHttpAndHasHeartbeatAndDone() throws Exception {
         MODEL.reset("slow");

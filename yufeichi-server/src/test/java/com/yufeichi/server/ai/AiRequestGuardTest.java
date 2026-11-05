@@ -50,4 +50,27 @@ class AiRequestGuardTest {
                 error -> assertThat(error.getCode()).isEqualTo(42900));
         assertThatCode(() -> guard.acquire(1).close()).doesNotThrowAnyException();
     }
+    @Test void anonymousRedisFailureAlsoFailsClosedWithoutLeakingPeerOrProviderDetails() {
+        var redis=mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class),anyList(),any(Object[].class)))
+                .thenThrow(new DataAccessResourceFailureException("PRIVATE-REDIS-VALUE")).thenReturn(1L);
+        var properties=new AiProperties(); properties.setMaxConcurrentRequests(1);
+        var guard=new AiRequestGuard(redis,properties);
+        assertThatThrownBy(()->guard.acquireAnonymous("198.51.100.4")).isInstanceOfSatisfying(BusinessException.class,error->{
+            assertThat(error.getCode()).isEqualTo(63001); assertThat(error.getMessage()).doesNotContain("PRIVATE","198.51.100");
+        });
+        assertThatCode(()->guard.acquireAnonymous("198.51.100.4").close()).doesNotThrowAnyException();
+    }
+
+    @Test void toolsRedisFailureClosesPermitAndDoesNotLeakPrivateError() {
+        var redis=mock(StringRedisTemplate.class);
+        when(redis.execute(any(RedisScript.class),anyList(),any(Object[].class)))
+                .thenThrow(new DataAccessResourceFailureException("PRIVATE-tools-redis")).thenReturn(1L);
+        var p=new AiProperties();p.setMaxConcurrentRequests(1);var guard=new AiRequestGuard(redis,p);
+        assertThatThrownBy(()->guard.acquireToolWorkflow(1)).isInstanceOfSatisfying(BusinessException.class,e->{
+            assertThat(e.getCode()).isEqualTo(63001);assertThat(e.getMessage()).doesNotContain("PRIVATE");
+        });
+        assertThatCode(()->guard.acquireToolWorkflow(1).close()).doesNotThrowAnyException();
+    }
+
 }

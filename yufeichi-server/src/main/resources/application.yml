@@ -17,6 +17,14 @@ server:
 app:
   ai:
     enabled: ${AI_ENABLED:false}
+    knowledge-enabled: ${AI_KNOWLEDGE_ENABLED:false}
+    tools-enabled: ${AI_TOOLS_ENABLED:false}
+    agent-enabled: ${AI_AGENT_ENABLED:false}
+    public-enabled: ${AI_PUBLIC_ENABLED:false}
+    index-sync-enabled: ${AI_INDEX_SYNC_ENABLED:false}
+    index-retry-delay-seconds: ${AI_INDEX_RETRY_DELAY_SECONDS:60}
+    knowledge-similarity-threshold: ${AI_KNOWLEDGE_SIMILARITY_THRESHOLD:0.5}
+    knowledge-top-k: ${AI_KNOWLEDGE_TOP_K:6}
     base-url: ${AI_PROVIDER_BASE_URL:}
     completions-path: ${AI_COMPLETIONS_PATH:/v1/chat/completions}
     api-key: ${AI_API_KEY:}

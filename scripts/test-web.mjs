@@ -1,5 +1,5 @@
 // Owns only fresh, disposable Day3/Day4 containers; never accepts a development database URL.
-import { spawn, execFileSync } from "node:child_process";
+import { spawn, spawnSync, execFileSync } from "node:child_process";
 import {
   existsSync,
   readFileSync,
@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { createAiTestProvider } from "./ai-test-provider.mjs";
+import { verifyIsolatedAiBackup } from "./verify-isolated-ai-backup.mjs";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const web = join(root, "yufeichi-web");
 const logs = join(web, ".e2e-logs");
@@ -29,13 +30,16 @@ const created = [],
   processes = [],
   descriptors = [];
 let aiProvider;
-const aiLive = process.env.E2E_AI_LIVE === "1";
+let nginxContainer, nginxEvidence;
+const aiDemo = process.env.E2E_AI_DEMO === "1";
+const nginxTest = process.env.E2E_NGINX === "1";
+const aiLive = process.env.E2E_AI_LIVE === "1" || aiDemo;
 if (aiLive && process.env.E2E_AI === "1") throw new Error("Choose either the local fixture or explicit live AI acceptance");
 if (aiLive && ["AI_API_KEY", "AI_PROVIDER_BASE_URL", "AI_CHAT_MODEL"].some(name => !process.env[name]?.trim()))
   throw new Error("Live AI acceptance requires provider configuration in this process environment");
 if (aiLive) {
   const specs = process.argv.slice(2).map(arg => arg.split(/[\\/]/).at(-1))
-    .filter(arg => arg === "ai-live.spec.ts" || arg === "ai-editor-live.spec.ts");
+    .filter(arg => arg === "ai-live.spec.ts" || arg === "ai-editor-live.spec.ts" || aiDemo && arg === "ai-showcase-live.spec.ts");
   if (specs.length !== 1) throw new Error("Choose exactly one live acceptance spec to keep paid calls bounded");
 }
 const docker = (...args) =>
@@ -80,6 +84,12 @@ function cleanup() {
   if (cleaning) return;
   cleaning = true;
   aiProvider?.close();
+  if (nginxContainer && nginxEvidence) {
+    try {
+      const captured = spawnSync("docker", ["logs", nginxContainer], { encoding: "utf8", windowsHide: true });
+      writeFileSync(join(nginxEvidence, "nginx.log"), (captured.stdout || "") + (captured.stderr || ""));
+    } catch { /* Preserve other cleanup. */ }
+  }
   for (const child of processes.reverse())
     if (child.exitCode === null) child.kill();
   for (const name of created.reverse()) {
@@ -170,6 +180,18 @@ try {
   const redisPort = docker("port", redis, "6379/tcp").split(":").at(-1);
   const backendPort = await port(),
     webPort = await port();
+  let vectorPort, vectorSecret, demoPg;
+  if (aiDemo) {
+    for (const key of ["AI_EMBEDDING_BASE_URL", "AI_EMBEDDING_API_KEY", "AI_EMBEDDING_MODEL"])
+      if (!process.env[key]?.trim()) throw new Error("Demo requires " + key);
+    const pg = "yufeichi-demo-pg-" + token; demoPg = pg; vectorSecret = randomUUID();
+    docker("run", "-d", "--rm", "--name", pg, "--label", "yufeichi.test=day14", "-p", "127.0.0.1::5432",
+      "-e", "POSTGRES_USER=demo", "-e", "POSTGRES_DB=demo", "-e", "POSTGRES_PASSWORD=" + vectorSecret,
+      "pgvector/pgvector:0.8.6-pg17@sha256:cf134a767f474095eeba57e0117be8e568e011a63f33fbf252f14c9b760f8e6f");
+    created.push(pg);
+    await waitFor(() => docker("exec", pg, "pg_isready", "-U", "demo", "-d", "demo").includes("accepting connections"), "demo pgvector");
+    vectorPort = docker("port", pg, "5432/tcp").split(":").at(-1);
+  }
   const env = {
     ...process.env,
     TEST_DB_URL:
@@ -181,6 +203,7 @@ try {
     TEST_REDIS_HOST: "127.0.0.1",
     TEST_REDIS_PORT: redisPort,
     TEST_REDIS_PASSWORD: redisSecret,
+    ...(aiDemo ? { AI_VECTOR_PASSWORD: vectorSecret } : {}),
   };
   const uploads = mkdtempSync(join(tmpdir(), "yufeichi-day3-uploads-"));
   const aiTest = process.env.E2E_AI === "1";
@@ -194,9 +217,16 @@ try {
       "--spring.config.additional-location=file:./yufeichi-server/src/test/resources/application-test.yml",
       "--server.port=" + backendPort,
       "--file.upload-path=" + uploads,
+      "--app.ai.tools-enabled=true",
+      "--app.ai.agent-enabled=true",
+      ...(aiDemo ? ["--app.ai.knowledge-enabled=true", "--app.ai.vector.enabled=true",
+        "--app.ai.vector.url=jdbc:postgresql://127.0.0.1:" + vectorPort + "/demo", "--app.ai.vector.username=demo",
+        '--app.ai.vector.password=${AI_VECTOR_PASSWORD}', '--app.ai.embedding.base-url=${AI_EMBEDDING_BASE_URL}',
+        '--app.ai.embedding.api-key=${AI_EMBEDDING_API_KEY}', '--app.ai.embedding.model=${AI_EMBEDDING_MODEL}',
+        "--app.ai.embedding.dimensions=1024"] : []),
       ...(aiLive ? ["--app.ai.enabled=true", '--app.ai.base-url=${AI_PROVIDER_BASE_URL}',
         '--app.ai.api-key=${AI_API_KEY}', '--app.ai.chat-model=${AI_CHAT_MODEL}',
-        "--app.ai.user-minute-limit=4", "--app.ai.user-daily-limit=4", "--app.ai.daily-request-limit=4",
+        "--app.ai.user-minute-limit=" + (aiDemo ? 12 : 4), "--app.ai.user-daily-limit=" + (aiDemo ? 12 : 4), "--app.ai.daily-request-limit=" + (aiDemo ? 12 : 4),
         "--app.ai.heartbeat-seconds=1"] : aiTest ? ["--app.ai.enabled=true", "--app.ai.base-url=" + aiProvider.baseUrl,
         "--app.ai.api-key=browser-fixture-not-a-real-key", "--app.ai.chat-model=fixture-model",
         "--app.ai.user-minute-limit=100", "--app.ai.user-daily-limit=1000", "--app.ai.daily-request-limit=2000",
@@ -230,7 +260,7 @@ try {
     const history = () => docker("exec", "-e", "MYSQL_PWD=" + secret, mysql, "mysql", "-uroot", "day3_test", "-Nse",
       "SELECT version,success,checksum FROM flyway_schema_history ORDER BY installed_rank");
     const before = history();
-    if (!before.split("\n").some(line => line.startsWith("11\t1\t"))) throw new Error("New migration not applied");
+    if (!before.split("\n").some(line => line.startsWith("12\t1\t"))) throw new Error("New migration not applied");
     const exited = new Promise(resolve => backendProcess.once("exit", resolve));
     backendProcess.kill(); await exited;
     const legacy = start(join(jdk, "bin", "java.exe"), ["-jar", previousJar,
@@ -240,16 +270,16 @@ try {
     await waitFor(async () => (await fetch(base + "/api/health")).ok, "previous backend on new schema");
     const login = await fetch(base + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "admin", password: "Admin@123456" }) });
-    if (!login.ok) throw new Error("Previous backend login failed on V11");
+    if (!login.ok) throw new Error("Previous backend login failed on V12");
     const headers = { "Content-Type": "application/json", Authorization: "Bearer " + (await login.json()).data.token };
     const saved = await fetch(base + "/api/admin/articles", { method: "POST", headers,
-      body: JSON.stringify({ title: "隔离回滚夹具", content: "Java21 V11兼容性验证", tagIds: [], isTop: 0, isFeatured: 0 }) });
-    if (!saved.ok) throw new Error("Previous backend write failed on V11");
+      body: JSON.stringify({ title: "隔离回滚夹具", content: "Java21 V12兼容性验证", tagIds: [], isTop: 0, isFeatured: 0 }) });
+    if (!saved.ok) throw new Error("Previous backend write failed on V12");
     const id = (await saved.json()).data.id;
     if (!(await fetch(base + "/api/admin/articles/" + id, { headers })).ok || history() !== before)
       throw new Error("Rollback read or migration history validation failed");
     const stopped = new Promise(resolve => legacy.once("exit", resolve)); legacy.kill(); await stopped;
-    console.log("ISOLATED_ROLLBACK_PASS: actual previous JAR runs, authenticates and reads/writes with V11; checksums unchanged");
+    console.log("ISOLATED_ROLLBACK_PASS: actual previous JAR runs, authenticates and reads/writes with V12; checksums unchanged");
     cleanup(); process.exit(0);
   }
   const testEnv = {
@@ -259,6 +289,7 @@ try {
     E2E_ISOLATED: "1",
     E2E_AI: aiTest ? "1" : "0",
     E2E_AI_LIVE: aiLive ? "1" : "0",
+    E2E_AI_DEMO: aiDemo ? "1" : "0",
     E2E_AI_PROVIDER: aiProvider?.baseUrl || "",
   };
   // Neither Vite nor the browser test process needs provider credentials/configuration.
@@ -310,6 +341,42 @@ try {
     async () => (await fetch(testEnv.E2E_BASE_URL)).ok,
     "Vite proxy",
   );
+  if (nginxTest) {
+    const evidenceDir = mkdtempSync(join(tmpdir(), "yufeichi-day14-nginx-"));
+    const openssl = process.env.OPENSSL_EXE || "C:/Program Files/Git/usr/bin/openssl.exe";
+    execFileSync(openssl, ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "2", "-subj", "/CN=localhost",
+      "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1", "-keyout", join(evidenceDir, "test.key"), "-out", join(evidenceDir, "test.crt")],
+      { windowsHide: true, stdio: "ignore" });
+    let config = readFileSync(join(root, "deploy/production/nginx.conf"), "utf8")
+      .replaceAll("http://127.0.0.1:8080", "http://host.docker.internal:" + backendPort)
+      .replaceAll("yufeichi.com www.yufeichi.com", "localhost")
+      .replaceAll("/etc/letsencrypt/live/yufeichi.com/fullchain.pem", "/etc/nginx/testcert/test.crt")
+      .replaceAll("/etc/letsencrypt/live/yufeichi.com/privkey.pem", "/etc/nginx/testcert/test.key")
+      .replace(/^\s*(include \/etc\/letsencrypt|ssl_dhparam).*;\r?$/gm, "");
+    writeFileSync(join(evidenceDir, "nginx.conf"), config);
+    const nginx = "yufeichi-nginx-" + token;
+    nginxContainer = nginx; nginxEvidence = evidenceDir;
+    const image = "nginx:1.28.0-alpine@sha256:30f1c0d78e0ad60901648be663a710bdadf19e4c10ac6782c235200619158284";
+    docker("run", "-d", "--rm", "--name", nginx, "--label", "yufeichi.test=day14", "-p", "127.0.0.1::443", "--memory=128m", "--cpus=0.5",
+      "-v", join(evidenceDir, "nginx.conf") + ":/etc/nginx/conf.d/default.conf:ro",
+      "-v", evidenceDir + ":/etc/nginx/testcert:ro", "-v", join(web, "dist") + ":/var/www/yufeichi-app/current:ro",
+      "-v", uploads + ":/var/lib/yufeichi/uploads:ro", image);
+    created.push(nginx); docker("exec", nginx, "nginx", "-t");
+    const httpsPort = docker("port", nginx, "443/tcp").split(":").at(-1);
+    testEnv.E2E_BASE_URL = "https://127.0.0.1:" + httpsPort;
+    testEnv.E2E_NGINX = "1"; testEnv.E2E_VIDEO_DIR = evidenceDir;
+    const { request } = requireWeb("@playwright/test");
+    const client = await request.newContext({ ignoreHTTPSErrors: true });
+    try {
+      await waitFor(async () => (await client.get(testEnv.E2E_BASE_URL + "/api/health")).ok(), "Nginx HTTPS to Java");
+      if ((await client.get(testEnv.E2E_BASE_URL + "/v3/api-docs")).status() !== 404) throw new Error("Nginx exposed OpenAPI");
+    } finally { await client.dispose(); }
+    writeFileSync(join(evidenceDir, "runtime.json"), JSON.stringify({ kind: "isolated-local-self-signed-https-not-production", nginxImage: image,
+      sourceConfig: "deploy/production/nginx.conf", jarSha256: (await import("node:crypto")).createHash("sha256").update(readFileSync(jar)).digest("hex"),
+      frontendIndexSha256: (await import("node:crypto")).createHash("sha256").update(readFileSync(join(web, "dist/index.html"))).digest("hex"),
+      chatModel: aiDemo ? process.env.AI_CHAT_MODEL : "fixture-model", embeddingModel: aiDemo ? process.env.AI_EMBEDDING_MODEL : null }, null, 2));
+    console.log("NGINX_HTTPS_PASS syntax/health/docs-hidden; evidence: " + evidenceDir);
+  }
   console.log(
     "Isolated MySQL 8.4 + Redis 7 + Java 21 ready; browser acceptance starting.",
   );
@@ -327,6 +394,25 @@ try {
     child.on("exit", (code) => resolve(code ?? 1));
     child.on("error", reject);
   });
+  if (aiDemo) {
+    const utcDay = new Date().toISOString().slice(0, 10);
+    const reserved = docker("exec", "-e", "REDISCLI_AUTH=" + redisSecret, redis, "redis-cli", "--raw", "GET", "ai:quota:global:day:" + utcDay);
+    writeFileSync(join(testEnv.E2E_VIDEO_DIR, "provider-reservations.json"), JSON.stringify({ reservedProviderCalls: Number(reserved), max: 12,
+      note: "Conservative reserved attempts, not a money bill; only synthetic public fixture data." }, null, 2));
+  }
+  if (process.exitCode === 0 && nginxTest) {
+    const resources = docker("stats", "--no-stream", "--format", "{{json .}}", ...created);
+    writeFileSync(join(testEnv.E2E_VIDEO_DIR, "resources.jsonl"), resources);
+    if (process.platform === "win32") {
+      const snapshot = execFileSync("powershell.exe", ["-NoProfile", "-Command",
+        "$aiProcess = Get-Process -Id " + backendProcess.pid + "; [pscustomobject]@{WorkingSetBytes=$aiProcess.WorkingSet64; PrivateMemoryBytes=$aiProcess.PrivateMemorySize64; CpuSeconds=$aiProcess.CPU; Threads=$aiProcess.Threads.Count} | ConvertTo-Json -Compress"],
+        { encoding: "utf8", windowsHide: true });
+      writeFileSync(join(testEnv.E2E_VIDEO_DIR, "jvm-resources.json"), snapshot);
+    }
+  }
+  if (process.exitCode === 0 && aiDemo) {
+    await verifyIsolatedAiBackup({ mysql, password: secret, pg: demoPg, uploads, output: join(testEnv.E2E_VIDEO_DIR, "backup") });
+  }
   console.log("Logs: " + logs + "; disposable upload evidence: " + uploads);
 } catch (error) {
   console.error(error.message);

@@ -13,6 +13,10 @@ export interface SummaryStreamHandlers {
 }
 
 const activeRequests = new Set<AbortController>();
+export function trackAiRequest(controller: AbortController): () => void {
+  activeRequests.add(controller);
+  return () => activeRequests.delete(controller);
+}
 export function cancelAiRequests(): void {
   for (const controller of activeRequests) controller.abort();
 }

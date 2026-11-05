@@ -36,6 +36,7 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
     private final org.springframework.core.env.Environment environment;
+    private final com.yufeichi.server.ai.AiProperties aiProperties;
 
     @Bean
     public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration() {
@@ -96,6 +97,11 @@ public class SecurityConfig {
                                 )
                                 .permitAll()
 
+                                .requestMatchers(HttpMethod.GET, "/api/ai/knowledge/status").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/api/ai/knowledge/chat")
+                                .access((authentication, context) -> new org.springframework.security.authorization.AuthorizationDecision(
+                                    aiProperties.isPublicEnabled() || authentication.get().isAuthenticated()
+                                        && !(authentication.get() instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)))
                                 .anyRequest()
                                 .authenticated()
                 )
@@ -131,6 +137,15 @@ public class SecurityConfig {
                 "https://yufeichi.com",
                 "https://www.yufeichi.com"
         ));
+
+        // Self-signed local HTTPS deployment rehearsal; production allowlist stays unchanged.
+        if (environment.acceptsProfiles(org.springframework.core.env.Profiles.of("test"))
+                && !environment.acceptsProfiles(org.springframework.core.env.Profiles.of("prod"))) {
+            var testOrigins = new java.util.ArrayList<>(configuration.getAllowedOriginPatterns());
+            testOrigins.add("https://localhost:*");
+            testOrigins.add("https://127.0.0.1:*");
+            configuration.setAllowedOriginPatterns(testOrigins);
+        }
 
         configuration.setAllowedMethods(List.of(
                 "GET",

@@ -31,16 +31,72 @@ public class AiKnowledgeIndex {
     });
     public AiKnowledgeIndex(JdbcTemplate jdbc, PlatformTransactionManager transactions, AiKnowledgeSources sources,
                             ObjectProvider<AiVectorStore> vectors, AiProperties properties, AiRequestGuard guard) {
-        this.jdbc = jdbc; this.tx = new TransactionTemplate(transactions); this.sources = sources;
+        this.jdbc = jdbc; this.tx = new TransactionTemplate(transactions);
+        this.tx.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.sources = sources;
         this.vectors = vectors; this.properties = properties; this.guard = guard;
     }
     @EventListener(ApplicationReadyEvent.class)
     public void start() { if (available()) worker.scheduleWithFixedDelay(this::poll, 1, 2, TimeUnit.SECONDS); }
     private boolean available() { return properties.isEnabled() && properties.getVector().isEnabled() && vectors.getIfAvailable() != null; }
+    @org.springframework.transaction.event.TransactionalEventListener(phase = org.springframework.transaction.event.TransactionPhase.AFTER_COMMIT)
+    public void changed(AiContentChanged event) {
+        if (!available() || !properties.isIndexSyncEnabled()) return;
+        try {
+            // AFTER_COMMIT needs a new transaction: original transaction resources may still be bound.
+            tx.executeWithoutResult(t -> jdbc.update("UPDATE ai_index_sync SET generation=generation+1,failed_attempts=0,last_error=NULL,next_attempt_at=DATE_ADD(UTC_TIMESTAMP(3),INTERVAL 2 SECOND),updated_at=UTC_TIMESTAMP(3) WHERE id=1"));
+        } catch (RuntimeException signalFailure) {
+            // The content commit has already succeeded. Five-minute reconciliation repairs a missed signal.
+            LoggerFactory.getLogger(getClass()).warn("AI index change signal unavailable; reconciliation pending");
+        }
+    }
+    private void reconcile() {
+        if (!properties.isIndexSyncEnabled()) return;
+        int due = jdbc.queryForObject("SELECT COUNT(*) FROM ai_index_sync WHERE id=1 AND (last_reconcile_at IS NULL OR last_reconcile_at <= DATE_SUB(UTC_TIMESTAMP(3),INTERVAL 5 MINUTE))", Integer.class);
+        if (due == 0) return;
+        AiKnowledgeSources.Snapshot snapshot;
+        try { snapshot = sources.read(false); }
+        catch (AiKnowledgeSources.IndexLimitException oversized) {
+            // Still enqueue a visible INPUT_LIMIT result, rather than repeatedly failing every poll.
+            tx.executeWithoutResult(t -> {
+                jdbc.update("UPDATE ai_index_sync SET generation=generation+1,next_attempt_at=UTC_TIMESTAMP(3) WHERE id=1 AND generation=completed_generation");
+                jdbc.update("UPDATE ai_index_sync SET last_reconcile_at=UTC_TIMESTAMP(3) WHERE id=1");
+            });
+            return;
+        }
+        String hash = jdbc.queryForObject("SELECT manifest_hash FROM ai_index_state WHERE id=1", String.class);
+        tx.executeWithoutResult(t -> {
+            jdbc.queryForMap("SELECT id FROM ai_index_state WHERE id=1 FOR UPDATE");
+            jdbc.queryForMap("SELECT id FROM ai_index_sync WHERE id=1 FOR UPDATE");
+            if (!snapshot.hash().equals(hash))
+                jdbc.update("UPDATE ai_index_sync SET generation=generation+1,next_attempt_at=UTC_TIMESTAMP(3) WHERE id=1 AND generation=completed_generation");
+            jdbc.update("UPDATE ai_index_sync SET last_reconcile_at=UTC_TIMESTAMP(3) WHERE id=1");
+        });
+        // Independent cleanup never calls an embedding provider. Current MySQL still gates every answer.
+        try { vectors.getObject().pruneOwnedObsolete(jdbc.queryForObject("SELECT active_version FROM ai_index_state WHERE id=1", String.class), snapshot); }
+        catch (RuntimeException unavailable) { LoggerFactory.getLogger(getClass()).warn("AI obsolete vector cleanup deferred"); }
+    }
+    private void queueAutomatic() {
+        if (!properties.isIndexSyncEnabled()) return;
+        tx.executeWithoutResult(t -> {
+            var state = jdbc.queryForMap("SELECT running_job FROM ai_index_state WHERE id=1 FOR UPDATE");
+            if (state.get("running_job") != null) return;
+            var rows = jdbc.queryForList("SELECT generation FROM ai_index_sync WHERE id=1 AND generation>completed_generation AND failed_attempts<3 AND (next_attempt_at IS NULL OR next_attempt_at<=UTC_TIMESTAMP(3)) FOR UPDATE");
+            if (!rows.isEmpty()) insertJob(0, "AUTO", ((Number) rows.getFirst().get("generation")).longValue());
+        });
+    }
+    private String insertJob(long userId, String origin, long generation) {
+        String id = UUID.randomUUID().toString();
+        jdbc.update("INSERT INTO ai_index_job(id,requested_by,status,origin,sync_generation) VALUES(?,?,'QUEUED',?,?)", id, userId, origin, generation);
+        jdbc.update("UPDATE ai_index_state SET running_job=? WHERE id=1", id);
+        return id;
+    }
     public Map<String, Object> status() {
         var state = jdbc.queryForMap("SELECT active_version,activated_at,running_job FROM ai_index_state WHERE id=1");
         var result = new LinkedHashMap<String, Object>(); result.put("available", available()); result.put("state", state);
-        result.put("jobs", jdbc.queryForList("SELECT id,status,index_version,source_count,chunk_count,completed_chunks,error_code,created_at,finished_at FROM ai_index_job ORDER BY created_at DESC,id DESC LIMIT 20"));
+        result.put("syncEnabled", properties.isIndexSyncEnabled());
+        result.put("sync", jdbc.queryForMap("SELECT * FROM ai_index_sync WHERE id=1"));
+        result.put("jobs", jdbc.queryForList("SELECT id,status,origin,index_version,source_count,chunk_count,completed_chunks,error_code,created_at,finished_at FROM ai_index_job ORDER BY created_at DESC,id DESC LIMIT 20"));
         return result;
     }
     public String submit(long userId) {
@@ -48,15 +104,14 @@ public class AiKnowledgeIndex {
         return tx.execute(status -> {
             var state = jdbc.queryForMap("SELECT running_job FROM ai_index_state WHERE id=1 FOR UPDATE");
             if (state.get("running_job") != null) throw new BusinessException(ErrorCode.CONFLICT);
-            String id = UUID.randomUUID().toString();
-            jdbc.update("INSERT INTO ai_index_job(id,requested_by,status) VALUES(?,?,'QUEUED')", id, userId);
-            jdbc.update("UPDATE ai_index_state SET running_job=? WHERE id=1", id);
-            return id;
+            long generation = jdbc.queryForObject("SELECT generation FROM ai_index_sync WHERE id=1 FOR UPDATE", Long.class);
+            jdbc.update("UPDATE ai_index_sync SET failed_attempts=0,last_error=NULL,next_attempt_at=NULL WHERE id=1");
+            return insertJob(userId, "MANUAL", generation);
         });
     }
     private void poll() {
         // MySQL connection-scoped mutex also prevents two app instances from running paid jobs.
-        // A crashed connection releases it; the next worker records interruption instead of auto-retrying paid calls.
+        // A crashed connection releases it; durable generations recover with at most three attempts.
         try (Connection connection = Objects.requireNonNull(jdbc.getDataSource()).getConnection()) {
             try (var lock = connection.prepareStatement("SELECT GET_LOCK('yufeichi-ai-index',0)")) {
                 lock.setQueryTimeout(5);
@@ -64,7 +119,11 @@ public class AiKnowledgeIndex {
             }
             try {
                 String id = jdbc.queryForObject("SELECT running_job FROM ai_index_state WHERE id=1", String.class);
-                if (id == null) return;
+                if (id == null) {
+                    reconcile(); queueAutomatic();
+                    id = jdbc.queryForObject("SELECT running_job FROM ai_index_state WHERE id=1", String.class);
+                    if (id == null) return;
+                }
                 String status = jdbc.queryForObject("SELECT status FROM ai_index_job WHERE id=?", String.class, id);
                 if (!"QUEUED".equals(status)) { fail(id, "INTERRUPTED"); return; }
                 jdbc.update("UPDATE ai_index_job SET status='RUNNING',started_at=NOW() WHERE id=? AND status='QUEUED'", id);
@@ -83,6 +142,7 @@ public class AiKnowledgeIndex {
             var vector = Objects.requireNonNull(vectors.getIfAvailable());
             vector.initialize();
             var snapshot = sources.read(false);
+            vector.pruneOwnedObsolete(jdbc.queryForObject("SELECT active_version FROM ai_index_state WHERE id=1", String.class), snapshot);
             checkDeadline(deadline);
             var state = jdbc.queryForMap("SELECT active_version,manifest_hash FROM ai_index_state WHERE id=1");
             String version = UUID.randomUUID().toString();
@@ -115,7 +175,14 @@ public class AiKnowledgeIndex {
                 int changed = jdbc.update("UPDATE ai_index_state SET active_version=?,manifest_hash=?,activated_at=NOW(),running_job=NULL WHERE id=1 AND running_job=?", completeVersion, snapshot.hash(), id);
                 if (changed != 1) throw new IndexFailure("INTERRUPTED");
                 jdbc.update("UPDATE ai_index_job SET status='SUCCEEDED',completed_chunks=?,finished_at=NOW() WHERE id=? AND status='RUNNING'", count, id);
+                Long generation = jdbc.queryForObject("SELECT sync_generation FROM ai_index_job WHERE id=?", Long.class, id);
+                if (generation != null) {
+                    jdbc.update("UPDATE ai_index_sync SET completed_generation=GREATEST(completed_generation,?) WHERE id=1", generation);
+                    jdbc.update("UPDATE ai_index_sync SET failed_attempts=0,last_error=NULL,next_attempt_at=NULL WHERE id=1 AND generation=?", generation);
+                }
             });
+            try { vector.pruneOwnedObsolete(completeVersion, sources.read(false)); }
+            catch (RuntimeException unavailable) { LoggerFactory.getLogger(getClass()).warn("AI obsolete vector cleanup deferred"); }
             LoggerFactory.getLogger(getClass()).info("AI index job={} status=SUCCEEDED chunks={}", id, count);
         } catch (RuntimeException error) {
             String code = error instanceof IndexFailure f ? f.code : error instanceof AiKnowledgeSources.IndexLimitException ? "INPUT_LIMIT"
@@ -126,8 +193,18 @@ public class AiKnowledgeIndex {
     }
     private void fail(String id, String code) {
         tx.executeWithoutResult(transaction -> {
-            jdbc.update("UPDATE ai_index_job SET status='FAILED',error_code=?,finished_at=NOW() WHERE id=? AND status IN ('RUNNING','QUEUED')", code, id);
+            jdbc.queryForMap("SELECT id FROM ai_index_state WHERE id=1 FOR UPDATE");
+            int changed = jdbc.update("UPDATE ai_index_job SET status='FAILED',error_code=?,finished_at=NOW() WHERE id=? AND status IN ('RUNNING','QUEUED')", code, id);
             jdbc.update("UPDATE ai_index_state SET running_job=NULL WHERE id=1 AND running_job=?", id);
+            if (changed == 1) {
+                Long generation = jdbc.queryForObject("SELECT sync_generation FROM ai_index_job WHERE id=?", Long.class, id);
+                // Legacy jobs can have no generation. Newer content must not inherit an older failure.
+                if (generation != null) {
+                    jdbc.queryForMap("SELECT id FROM ai_index_sync WHERE id=1 FOR UPDATE");
+                    jdbc.update("UPDATE ai_index_sync SET failed_attempts=IF(? IN ('INPUT_LIMIT','QUOTA'),3,LEAST(failed_attempts+1,3)),last_error=?,next_attempt_at=TIMESTAMPADD(SECOND,? * POW(2,failed_attempts-1),UTC_TIMESTAMP(3)) WHERE id=1 AND generation=?",
+                            code, code, properties.getIndexRetryDelaySeconds(), generation);
+                }
+            }
         });
         LoggerFactory.getLogger(getClass()).warn("AI index job={} status=FAILED code={}", id, code);
     }

@@ -9,7 +9,7 @@
         ><RouterLink to="/articles" active-class="selected">文章</RouterLink
         ><RouterLink to="/projects" active-class="selected">项目</RouterLink
         ><RouterLink to="/about" active-class="selected">关于</RouterLink
-        ><RouterLink to="/admin/ai">AI 助手</RouterLink>
+        ><RouterLink to="/ai/knowledge">AI 问答</RouterLink>
       </nav>
     </header>
     <main id="main-content"><RouterView /></main>

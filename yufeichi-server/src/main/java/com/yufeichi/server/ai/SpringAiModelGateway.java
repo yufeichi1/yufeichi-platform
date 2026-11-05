@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
 
-final class SpringAiModelGateway implements AiModelGateway {
+final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
     private final OpenAiChatModel model;
     private final AiProperties properties;
 
@@ -61,5 +61,53 @@ final class SpringAiModelGateway implements AiModelGateway {
             if (error.getClass().getSimpleName().contains(name)) return true;
         }
         return false;
+    }
+
+    @Override public Mono<Round> round(List<org.springframework.ai.chat.messages.Message> messages,
+                                      List<org.springframework.ai.tool.ToolCallback> tools) {
+        return Mono.defer(() -> {
+            var options = OpenAiChatOptions.builder().model(properties.getChatModel())
+                    .reasoningEffort(properties.effectiveToolReasoningEffort()).maxTokens(properties.getMaxOutputTokens())
+                    .internalToolExecutionEnabled(false).toolCallbacks(tools).parallelToolCalls(false);
+            // Only the final, tool-free round requests JSON mode. No implicit model/tool loop.
+            if (tools.isEmpty() && properties.isJsonMode()) options.responseFormat(new ResponseFormat(ResponseFormat.Type.JSON_OBJECT, null));
+            return model.stream(new Prompt(messages, options.build())).reduce(new ToolRoundBuffer(), ToolRoundBuffer::add)
+                    .map(ToolRoundBuffer::finish);
+        }).onErrorMap(error -> {
+            if (error instanceof com.yufeichi.server.common.error.BusinessException) return error;
+            return new AiProviderException(hasType(error, "Timeout") ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_UNAVAILABLE, false);
+        });
+    }
+
+    private static final class ToolRoundBuffer {
+        final StringBuilder text = new StringBuilder();
+        final java.util.List<org.springframework.ai.chat.messages.AssistantMessage.ToolCall> calls = new java.util.ArrayList<>();
+        String reason = "";
+        int input, output;
+        ToolRoundBuffer add(org.springframework.ai.chat.model.ChatResponse response) {
+            if (response.getResults().size() > 1) throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false);
+            var result = response.getResult();
+            if (result != null) {
+                var message = result.getOutput();
+                if (message.getText() != null) text.append(message.getText());
+                calls.addAll(message.getToolCalls()); // OpenAiApi merges fragmented tool arguments before emitting.
+                if (text.length() > 6000 || calls.size() > 4 || calls.stream().anyMatch(c -> c.arguments() == null || c.arguments().length() > 1024))
+                    throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false);
+                String finish = result.getMetadata().getFinishReason();
+                if (finish != null && !finish.isBlank()) reason = finish;
+            }
+            var usage = response.getMetadata().getUsage();
+            if (usage != null) {
+                input = usage.getPromptTokens() == null ? input : usage.getPromptTokens();
+                output = usage.getCompletionTokens() == null ? output : usage.getCompletionTokens();
+            }
+            return this;
+        }
+        Round finish() {
+            if (!(calls.isEmpty() ? "STOP" : "TOOL_CALLS").equalsIgnoreCase(reason))
+                throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false);
+            return new Round(org.springframework.ai.chat.messages.AssistantMessage.builder().content(text.toString())
+                    .toolCalls(List.copyOf(calls)).build(), reason, input, output);
+        }
     }
 }

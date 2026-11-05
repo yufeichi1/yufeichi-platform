@@ -30,7 +30,9 @@ public enum ErrorCode {
     FILE_UPLOAD_ERROR(62001, "文件上传失败", HttpStatus.INTERNAL_SERVER_ERROR),
     AI_UNAVAILABLE(63001, "AI 服务暂不可用，请稍后重试", HttpStatus.SERVICE_UNAVAILABLE),
     AI_TIMEOUT(63002, "AI 请求超时，请稍后重试", HttpStatus.GATEWAY_TIMEOUT),
-    AI_INVALID_RESPONSE(63003, "AI 返回格式不符合要求，请重试", HttpStatus.BAD_GATEWAY);
+    AI_INVALID_RESPONSE(63003, "AI 返回格式不符合要求，请重试", HttpStatus.BAD_GATEWAY),
+    AI_AGENT_LIMIT(63004, "助手已达到本次执行上限，请缩小问题后重试", HttpStatus.TOO_MANY_REQUESTS),
+    AI_SOURCE_CHANGED(63005, "查询期间内容已变化，请重新提问", HttpStatus.CONFLICT);
 
     private final int code;
     private final String message;

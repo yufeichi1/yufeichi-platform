@@ -84,7 +84,10 @@ test("停止和离开页面取消流，临时输入不会跨页面保存", async
 test("空正文、超长、无权限与匿名入口不发起模型请求", async ({ page, request }) => {
   await scenario(request);
   await page.goto("/");
-  await page.getByRole("link", { name: "AI 助手", exact: true }).click();
+  await page.getByRole("link", { name: "AI 问答", exact: true }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/ai/knowledge");
+  await expect(page.getByRole("button", { name: "提问", exact: true })).toBeDisabled();
+  await page.goto("/admin/ai");
   await expect(page).toHaveURL(/\/login\?redirect=/);
   await login(page, "day3-reader");
   await page.goto("/admin/ai");

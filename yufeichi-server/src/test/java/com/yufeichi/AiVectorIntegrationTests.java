@@ -69,7 +69,7 @@ class AiVectorIntegrationTests {
     @Test void versionsSchemaAndBusinessDataSourceRemainIndependent() throws Exception {
         assertThat(business.queryForObject("SELECT DATABASE()", String.class)).isEqualTo("vector_business_test");
         try (var connection = businessSource.getConnection()) { assertThat(connection.getMetaData().getURL()).startsWith("jdbc:mysql:"); }
-        assertThat(business.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(11);
+        assertThat(business.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(12);
         assertThat(vector.queryForObject("SELECT current_database()", String.class)).isEqualTo("ai_vector_test");
         assertThat(vector.queryForObject("SELECT current_setting('server_version')", String.class)).startsWith("17.");
         assertThat(vector.queryForObject("SELECT extversion FROM pg_extension WHERE extname='vector'", String.class)).isEqualTo("0.8.6");
@@ -172,7 +172,11 @@ class AiVectorIntegrationTests {
         assertThat((Integer) failed.get("completed_chunks")).isGreaterThan(0);
         assertThat(activeVersion()).isEqualTo(original);
         assertThat(index.status().get("jobs").toString()).contains("FAILED", "DEPENDENCY_UNAVAILABLE");
-        assertThat(store.matches(original, originalDocuments)).isTrue();
+        // Day9 immediately removes obsolete content, while preserving unchanged public rows and active pointer.
+        var unchanged = originalDocuments.stream().filter(d -> !("article".equals(d.getMetadata().get("sourceType"))
+                && "1".equals(String.valueOf(d.getMetadata().get("sourceId"))))).toList();
+        assertThat(store.matches(original, unchanged)).isTrue();
+        assertThat(vector.queryForObject("SELECT COUNT(*) FROM yufeichi_ai.vector_store WHERE metadata->>'indexVersion'=? AND metadata->>'sourceType'='article' AND metadata->>'sourceId'='1'",Integer.class,original)).isZero();
     }
     @Test void changingVisibilityDuringEmbeddingAbortsActivation() throws Exception {
         fixtures();

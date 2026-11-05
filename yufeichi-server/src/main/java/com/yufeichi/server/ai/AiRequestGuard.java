@@ -54,6 +54,32 @@ public class AiRequestGuard {
         }
     }
 
+    /** Resolve the peer through ClientAddress before calling; never trust arbitrary forwarded headers. */
+    public Lease acquireAnonymous(String address) {
+        if (!concurrent.tryAcquire()) throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS);
+        var lease = new Lease();
+        try {
+            String day = LocalDate.now(ZoneOffset.UTC).toString();
+            String peer = RedisSecurityStore.digest(address);
+            reserve(List.of("ai:quota:ip:minute:" + peer, "ai:quota:ip:day:" + day + ":" + peer,
+                    "ai:quota:global:day:" + day), "3", "60000", "10", "172800000",
+                    Integer.toString(properties.getDailyRequestLimit()), "172800000");
+            return lease;
+        } catch (RuntimeException failure) { lease.close(); throw failure; }
+    }
+
+    /** SQL-only workflow: independent user quota, no reservation from the paid provider budget. */
+    public Lease acquireToolWorkflow(long userId) {
+        if (!concurrent.tryAcquire()) throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS);
+        var lease = new Lease();
+        try {
+            String user = RedisSecurityStore.digest(Long.toString(userId));
+            reserve(List.of("ai:quota:tools:minute:" + user, "ai:quota:tools:day:" + LocalDate.now(ZoneOffset.UTC) + ":" + user),
+                    "10", "60000", "100", "172800000");
+            return lease;
+        } catch (RuntimeException failure) { lease.close(); throw failure; }
+    }
+
     public void reserveRetry() {
         reserve(List.of("ai:quota:global:day:" + LocalDate.now(ZoneOffset.UTC)),
                 Integer.toString(properties.getDailyRequestLimit()), "172800000");

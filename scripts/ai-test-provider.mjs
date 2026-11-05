@@ -36,6 +36,29 @@ export async function createAiTestProvider() {
         response.writeHead(401).end(); return;
       }
       response.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" });
+      if (data.messages?.[0]?.content?.includes("四次工具调用")) {
+        const emit = (delta, finish_reason) => response.write("data: " + JSON.stringify({ id: "agent-browser-fixture", object: "chat.completion.chunk", created: 1,
+          model: "fixture-model", choices: [{ index: 0, delta, ...(finish_reason ? { finish_reason } : {}) }] }) + "\n\n");
+        if (scenario === "agent-slow") {
+          emit({ role: "assistant", content: "" });
+          for (let i = 0; i < 100 && !closed; i++) await new Promise(resolve => setTimeout(resolve, 100));
+          if (closed) return;
+        }
+        const results = data.messages.filter(m => m.role === "tool").map(m => JSON.parse(m.content));
+        let name, args, answer;
+        if (scenario === "agent-write") { name = "deleteArticle"; args = { id: 1 }; }
+        else if (!results.length) { name = "searchArticles"; args = { keyword: "AgentBrowser", limit: 1 }; }
+        else if (!results[0].items.length) answer = { answered: false, answer: "", sourceIds: [] };
+        else if (results.length === 1) { name = "getArticleDetail"; args = { id: results[0].items[0].sourceId }; }
+        else answer = { answered: true, answer: "公开测试构建标识是 AGENT_BROWSER_742。", sourceIds: [results[1].citationId] };
+        if (name) {
+          const input = JSON.stringify(args), half = Math.floor(input.length / 2);
+          emit({ role: "assistant", tool_calls: [{ index: 0, id: "fixture-call-" + results.length, type: "function", function: { name, arguments: input.slice(0, half) } }] });
+          emit({ tool_calls: [{ index: 0, function: { arguments: input.slice(half) } }] });
+          emit({}, "tool_calls");
+        } else { emit({ role: "assistant", content: JSON.stringify(answer) }); emit({}, "stop"); }
+        response.end("data: [DONE]\n\n"); return;
+      }
       const summary = scenario === "markdown"
         ? "[恶意链接](javascript:window.__aiXss=1) ![恶意图片](javascript:window.__aiXss=1)" : "这是浏览器测试摘要。";
       const output = data.response_format?.type === "json_object" ? JSON.stringify({ summary }) : summary;

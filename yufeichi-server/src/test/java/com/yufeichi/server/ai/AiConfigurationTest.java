@@ -6,15 +6,25 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import static org.assertj.core.api.Assertions.*;
 
 class AiConfigurationTest {
+    @Test void knowledgeTopKIsBounded() {
+        var p = new AiProperties();
+        for (int invalid : new int[]{0, 11}) {
+            p.setKnowledgeTopK(invalid);
+            assertThatThrownBy(p::validate).isInstanceOf(IllegalArgumentException.class);
+        }
+        p.setKnowledgeTopK(5); assertThatCode(p::validate).doesNotThrowAnyException();
+    }
     @Test void officialDeepSeekUsesNonThinkingUnlessExplicitlyOverridden() {
         var properties = new AiProperties();
         properties.setBaseUrl("https://api.deepseek.com");
         assertThat(properties.effectiveReasoningEffort()).isEqualTo("none");
         properties.setReasoningEffort("low");
         assertThat(properties.effectiveReasoningEffort()).isEqualTo("low");
+        assertThat(properties.effectiveToolReasoningEffort()).isEqualTo("none");
         properties.setReasoningEffort("");
         properties.setBaseUrl("https://example.com");
         assertThat(properties.effectiveReasoningEffort()).isNull();
+        assertThat(properties.effectiveToolReasoningEffort()).isNull();
         properties.setReasoningEffort("invalid");
         assertThatThrownBy(properties::validate).isInstanceOf(IllegalArgumentException.class);
     }
@@ -24,6 +34,7 @@ class AiConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed().doesNotHaveBean(AiModelGateway.class);
                     assertThat(context.getBean(AiProperties.class).isEnabled()).isFalse();
+                    assertThat(context.containsBean("aiReactiveResources")).isFalse();
                 });
     }
 
@@ -33,6 +44,7 @@ class AiConfigurationTest {
                 .run(context -> {
                     assertThat(context).hasNotFailed().doesNotHaveBean(AiModelGateway.class);
                     assertThat(context.containsBean("aiHttpExecutor")).isFalse();
+                    assertThat(context.containsBean("aiReactiveResources")).isFalse();
                 });
     }
 

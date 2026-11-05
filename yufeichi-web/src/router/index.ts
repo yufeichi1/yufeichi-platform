@@ -5,6 +5,7 @@ import FrontLayout from "@/layouts/FrontLayout.vue";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 
 export function safeRedirect(value: unknown): string {
+  if (value === "/ai/knowledge" || value === "/ai/tools" || value === "/ai/assistant") return value;
   return typeof value === "string" &&
     /^\/admin(?:\/|\?|$)/.test(value) &&
     !value.includes("\\")
@@ -18,6 +19,9 @@ const router = createRouter({
       path: "/",
       component: FrontLayout,
       children: [
+      { path: "ai/assistant", component: () => import("@/views/front/AgentView.vue"), meta: { auth: true, title: "站内只读助手" } },
+      { path: "ai/tools", component: () => import("@/views/front/ToolsView.vue"), meta: { auth: true, title: "站内内容查询" } },
+        { path: "ai/knowledge", component: () => import("@/views/front/KnowledgeView.vue"), meta: { title: "站内知识问答" } },
         {
           path: "articles",
           component: () => import("@/views/front/BlogList.vue"),

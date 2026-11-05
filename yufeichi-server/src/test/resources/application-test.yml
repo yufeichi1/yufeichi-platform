@@ -2,6 +2,12 @@
 app:
   ai:
     enabled: false
+    knowledge-enabled: false
+    tools-enabled: false
+    agent-enabled: false
+    public-enabled: false
+    index-sync-enabled: false
+    index-retry-delay-seconds: 1
     api-key: ""
     base-url: ""
     chat-model: ""

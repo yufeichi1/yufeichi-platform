@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { request } from "@/api/http";
 type Job = { id: string; status: string; source_count: number; chunk_count: number; completed_chunks: number; error_code: string | null };
-type Status = { available: boolean; state: { active_version: string | null; running_job: string | null }; jobs: Job[] };
+type Status = { syncEnabled: boolean; sync: { generation: number; completed_generation: number; failed_attempts: number; last_error: string | null; next_attempt_at: string | null }; available: boolean; state: { active_version: string | null; running_job: string | null }; jobs: Job[] };
 const data = ref<Status>(), error = ref(""), busy = ref(false);
 let disposed = false, timer: ReturnType<typeof setTimeout> | undefined;
 const controller = new AbortController();
@@ -33,6 +33,11 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); controller.abort()
     <h2>站内内容索引</h2>
     <p class="muted">只处理已发布文章和公开项目。完整成功后才切换版本；内容未变时复用现有索引。</p>
     <p>当前版本：<span>{{ data?.state.active_version || "尚未建立" }}</span></p>
+    <p v-if="data?.syncEnabled">自动同步：{{ data.sync.generation > data.sync.completed_generation ? '有内容等待同步' : '已同步' }}
+      <span v-if="data.sync.failed_attempts >= 3"> · 已暂停重试，请检查服务后手动重建。</span>
+      <span v-else-if="data.sync.failed_attempts"> · 已失败 {{ data.sync.failed_attempts }} 次，等待有限重试。</span></p>
+    <p v-else-if="data" class="muted">自动同步未启用，内容变更后请手动重建。</p>
+    <p v-if="data?.sync?.last_error">{{ errors[data.sync.last_error] || '同步暂不可用' }}</p>
     <p v-if="data && !data.available" class="muted">索引服务尚未启用。</p>
     <el-button type="primary" :loading="busy" :disabled="!data?.available || !!active" @click="rebuild">重建站内索引</el-button>
     <p v-if="error" role="alert">{{ error }}</p>
@@ -42,7 +47,7 @@ onBeforeUnmount(() => { disposed = true; clearTimeout(timer); controller.abort()
         <p v-if="job.error_code">{{ errors[job.error_code] || "任务失败，请检查服务状态。" }}</p>
       </li>
     </ul>
-    <p class="muted">每次最多 100 个片段；每日索引最多 10 次模型请求、100000 字符。当前尚未开放站内问答。</p>
+    <p class="muted">每次最多 100 个片段；每日索引最多 10 次模型请求、100000 字符。内容下架后立即退出问答；旧索引会由同步任务清理。</p>
   </div>
 </template>
 <style scoped>.index-panel { margin-top: 24px; max-width: 900px; } li { margin: 12px 0; overflow-wrap: anywhere; } span { overflow-wrap: anywhere; }</style>

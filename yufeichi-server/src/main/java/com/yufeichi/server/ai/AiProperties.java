@@ -12,6 +12,14 @@ import java.net.URI;
 @ConfigurationProperties("app.ai")
 public class AiProperties {
     private boolean enabled;
+    private boolean knowledgeEnabled;
+    private boolean toolsEnabled;
+    private boolean agentEnabled;
+    private boolean publicEnabled;
+    private boolean indexSyncEnabled;
+    private int indexRetryDelaySeconds = 60;
+    private double knowledgeSimilarityThreshold = 0.5;
+    private int knowledgeTopK = 6;
     private String baseUrl = "";
     private String completionsPath = "/v1/chat/completions";
     private String apiKey = "";
@@ -86,10 +94,22 @@ public class AiProperties {
         } catch (IllegalArgumentException invalid) { return null; }
     }
 
+    // This agent verifies non-thinking tool calls only. Thinking-mode DeepSeek requires
+    // forwarding reasoning_content, which is deliberately outside this request-local protocol.
+    public String effectiveToolReasoningEffort() {
+        try {
+            if ("api.deepseek.com".equalsIgnoreCase(URI.create(baseUrl).getHost())) return "none";
+        } catch (IllegalArgumentException invalid) { /* The existing URL validation handles configuration. */ }
+        return effectiveReasoningEffort();
+    }
+
     public void validate() {
+        if (knowledgeTopK < 1 || knowledgeTopK > 10) throw new IllegalArgumentException("Invalid knowledge Top-K");
+        if (!Double.isFinite(knowledgeSimilarityThreshold) || knowledgeSimilarityThreshold <= 0 || knowledgeSimilarityThreshold > 1)
+            throw new IllegalArgumentException("Invalid AI knowledge similarity threshold");
         if (!reasoningEffort.isBlank() && !java.util.Set.of("none", "minimal", "low", "medium", "high", "xhigh", "max").contains(reasoningEffort))
             throw new IllegalArgumentException("Invalid AI reasoning effort");
-        if (indexTimeoutSeconds < 1 || indexTimeoutSeconds > 300 || requestTimeoutSeconds < 1 || requestTimeoutSeconds > 120 || connectTimeoutSeconds < 1
+        if (indexRetryDelaySeconds < 1 || indexRetryDelaySeconds > 300 || indexTimeoutSeconds < 1 || indexTimeoutSeconds > 300 || requestTimeoutSeconds < 1 || requestTimeoutSeconds > 120 || connectTimeoutSeconds < 1
                 || connectTimeoutSeconds > requestTimeoutSeconds || heartbeatSeconds < 1
                 || heartbeatSeconds > 30 || maxOutputTokens < 1 || maxOutputTokens > 2000
                 || maxInputChars < 1 || maxInputChars > 20000 || maxConcurrentRequests < 1

@@ -22,6 +22,7 @@ public final class AiVectorStore implements AutoCloseable {
     private final int dimensions;
     private final String model;
     private volatile boolean ready;
+    private String cleanupCursor = "00000000-0000-0000-0000-000000000000";
 
     public AiVectorStore(AiProperties properties, EmbeddingModel embedding) {
         properties.getVector().validate(); properties.getEmbedding().validate();
@@ -89,6 +90,38 @@ public final class AiVectorStore implements AutoCloseable {
             return expected.stream().allMatch(d -> java.util.Objects.equals(content.get(d.getId()), d.getText())
                     && d.getMetadata().entrySet().stream().allMatch(e -> metadata.containsKey(d.getId())
                     && String.valueOf(e.getValue()).equals(String.valueOf(metadata.get(d.getId()).get(e.getKey())))));
+        });
+    }
+    /** Delete bounded, verifiably system-owned obsolete rows only. Foreign rows remain untouched. */
+    public synchronized int pruneOwnedObsolete(String activeVersion, AiKnowledgeSources.Snapshot snapshot) {
+        return safely(() -> {
+            ensureReady();
+            var live = new java.util.HashMap<String, String>();
+            snapshot.sources().forEach(s -> live.put(s.type() + ":" + s.id(), s.hash()));
+            var rows = jdbc.queryForList("SELECT id::text,metadata FROM yufeichi_ai.vector_store WHERE metadata->>'chunker'='paragraph-v1' AND id>?::uuid ORDER BY id LIMIT 1000", cleanupCursor);
+            // Rotate bounded pages so foreign or malformed rows cannot permanently starve later owned rows.
+            cleanupCursor = rows.size() < 1000 ? "00000000-0000-0000-0000-000000000000" : rows.getLast().get("id").toString();
+            var obsolete = new java.util.ArrayList<String>();
+            var json = new com.fasterxml.jackson.databind.ObjectMapper();
+            for (var row : rows) {
+                try {
+                    var m = json.readTree(row.get("metadata").toString());
+                    String version = m.path("indexVersion").asText(), type = m.path("sourceType").asText(), hash = m.path("contentHash").asText();
+                    java.util.UUID.fromString(version);
+                    long sourceId = Long.parseLong(m.path("sourceId").asText());
+                    int chunk = Integer.parseInt(m.path("chunk").asText());
+                    if (!List.of("article", "project").contains(type) || sourceId < 1 || chunk < 0 || chunk >= 100
+                            || !hash.matches("[a-f0-9]{64}") || !model.equals(m.path("embeddingModel").asText())
+                            || dimensions != m.path("dimensions").asInt()) continue;
+                    String key = version + ":" + type + ":" + sourceId + ":" + hash + ":" + chunk;
+                    String ownedId = java.util.UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+                    if (!ownedId.equals(row.get("id").toString())) continue;
+                    if (!version.equals(activeVersion) || !hash.equals(live.get(type + ":" + sourceId))) obsolete.add(ownedId);
+                } catch (java.io.IOException | IllegalArgumentException malformed) { /* Never delete unidentifiable data. */ }
+            }
+            for (int offset = 0; offset < obsolete.size(); offset += 20)
+                store.delete(obsolete.subList(offset, Math.min(offset + 20, obsolete.size())));
+            return obsolete.size();
         });
     }
     private <T> T safely(Supplier<T> operation) {

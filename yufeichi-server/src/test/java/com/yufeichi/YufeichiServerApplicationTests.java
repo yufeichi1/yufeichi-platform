@@ -240,12 +240,12 @@ class YufeichiServerApplicationTests {
     void realMysql84Redis7AndAllMigrationChecksumsAreValid() {
         assertThat(jdbc.queryForObject("SELECT VERSION()", String.class)).startsWith("8.4.");
         assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
-        assertThat(flyway.info().applied()).hasSize(11);
+        assertThat(flyway.info().applied()).hasSize(12);
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history ORDER BY installed_rank", String.class))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1 AND checksum IS NOT NULL", Integer.class))
-                .isEqualTo(11);
+                .isEqualTo(12);
         try (var connection = redis.getConnectionFactory().getConnection()) {
             assertThat(connection.ping()).isEqualTo("PONG");
             assertThat(connection.serverCommands().info("server").getProperty("redis_version")).startsWith("7.");

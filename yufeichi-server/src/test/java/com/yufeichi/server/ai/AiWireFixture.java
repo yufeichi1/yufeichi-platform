@@ -32,8 +32,8 @@ public final class AiWireFixture implements AutoCloseable {
                     correctAuthorization = "Bearer fixture-not-a-real-key".equals(exchange.getRequestHeaders().getFirst("Authorization"));
                     var request = json.readTree(exchange.getRequestBody());
                     structured = request.path("response_format").path("type").asText().equals("json_object");
-                    if (scenario.equals("auth") || scenario.equals("rate") || scenario.equals("transient") && attempt == 1) {
-                        int status = scenario.equals("auth") ? 401 : scenario.equals("rate") ? 429 : 503;
+                    if (scenario.equals("auth") || scenario.equals("rate") || scenario.equals("server-error") || scenario.equals("transient") && attempt == 1) {
+                        int status = scenario.equals("auth") ? 401 : scenario.equals("rate") ? 429 : scenario.equals("server-error") ? 500 : 503;
                         byte[] privateBody = "PRIVATE-PROVIDER-SECRET".getBytes(StandardCharsets.UTF_8);
                         exchange.getResponseHeaders().set("Content-Type", "application/json");
                         exchange.sendResponseHeaders(status, privateBody.length);

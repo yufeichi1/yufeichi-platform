@@ -22,7 +22,9 @@ onBeforeUnmount(() => { content.value = ""; summary.value = ""; });
       <label for="ai-adopted-summary">已采用摘要</label>
       <el-input id="ai-adopted-summary" v-model="summary" type="textarea" :rows="3" maxlength="500"
         show-word-limit placeholder="确认采用后显示在这里，不会写入文章。" />
-      <p class="muted">站内知识问答将在内容索引与来源校验完成后开放；当前提供文章摘要。</p>
+      <p><RouterLink to="/ai/knowledge">试用带来源的站内知识问答 →</RouterLink></p>
+      <p><RouterLink to="/ai/tools">查询公开文章和项目 →</RouterLink></p>
+      <p><RouterLink to="/ai/assistant">试用站内只读助手 →</RouterLink></p>
       <RouterLink to="/admin/articles">前往文章管理 →</RouterLink>
     </div>
     <AiIndexPanel v-if="canIndex" />

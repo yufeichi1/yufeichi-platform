@@ -39,6 +39,21 @@ public class AiKnowledgeSources {
         String url = (type.equals("article") ? "/articles/" : "/projects/") + id;
         return new Source(type, id, cleanTitle, text, hash(text), url);
     }
+    /** Re-read only the requested public source; never use indexed visibility as authorization. */
+    public Optional<Source> findPublic(String type, long id) {
+        if (id < 1) return Optional.empty();
+        if ("article".equals(type)) {
+            return jdbc.query("SELECT id,title,summary,content FROM blog_article WHERE id=? AND status=1 AND deleted=0",
+                    (rs, row) -> source(type, rs.getLong("id"), rs.getString("title"),
+                            text(rs.getString("summary")) + "\n\n" + text(rs.getString("content"))), id).stream().findFirst();
+        }
+        if ("project".equals(type)) {
+            return jdbc.query("SELECT id,name,description,tech_stack FROM project WHERE id=? AND status=1 AND deleted=0",
+                    (rs, row) -> source(type, rs.getLong("id"), rs.getString("name"),
+                            text(rs.getString("description")) + "\n\n" + text(rs.getString("tech_stack"))), id).stream().findFirst();
+        }
+        return Optional.empty();
+    }
     public List<Document> chunks(Snapshot snapshot, String version, String model, int dimensions) {
         UUID.fromString(version);
         var result = new ArrayList<Document>();

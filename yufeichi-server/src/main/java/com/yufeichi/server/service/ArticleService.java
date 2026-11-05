@@ -21,6 +21,7 @@ import java.util.List;
 @Transactional(readOnly=true)
 public class ArticleService {
     private final ArticleMapper articles;
+    private final org.springframework.context.ApplicationEventPublisher events;
     private final CategoryMapper categories;
     private final TagMapper tags;
     private final ArticleTagMapper relations;
@@ -77,6 +78,7 @@ public class ArticleService {
         }
         relations.delete(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId,article.getId()));
         if(!tagIds.isEmpty()) relations.insertTags(article.getId(),tagIds);
+        if (article.getStatus()==1) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("article",article.getId()));
         return view(article,false);
     }
 
@@ -84,19 +86,22 @@ public class ArticleService {
     @com.yufeichi.server.security.AuditAction("article.publish-state")
     public ArticleVO publish(long id, boolean publish) {
         Article article=lock(id);
+        boolean wasPublic=article.getStatus()==1;
         article.setStatus(publish ? 1 : 2);
         if(publish && article.getPublishedAt()==null) article.setPublishedAt(LocalDateTime.now());
         article.setUpdatedAt(LocalDateTime.now());
         articles.updateById(article);
+        if (wasPublic || publish) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("article",id));
         return view(article,false);
     }
 
     @Transactional
     @com.yufeichi.server.security.AuditAction("article.delete")
     public void delete(long id) {
-        lock(id);
+        Article article=lock(id);
         relations.delete(new LambdaQueryWrapper<ArticleTag>().eq(ArticleTag::getArticleId,id));
         articles.deleteById(id);
+        if(article.getStatus()==1) events.publishEvent(new com.yufeichi.server.ai.AiContentChanged("article",id));
     }
 
     private Article lock(long id) {
