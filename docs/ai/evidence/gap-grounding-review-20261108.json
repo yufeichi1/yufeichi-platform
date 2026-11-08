@@ -1,0 +1,13 @@
+{
+  "reviewer": "assistant source-by-source review, not independent human blind review",
+  "positiveAnswersReviewed": 36,
+  "negativeAnswersChecked": 24,
+  "unsupportedFactsObserved": 0,
+  "allCitationsMatchExpectedPublicSource": true,
+  "automaticScoreNotOverridden": true,
+  "strictFalseNegative": {
+    "topK": 5,
+    "caseId": "A04",
+    "explanation": "Correctly gives the global 100/day and also the source-supported user 10/day. The frozen numeric contradiction rule conservatively rejects the extra different count. Retain automatic 17/18; do not change the rubric or promote the score after seeing results."
+  }
+}

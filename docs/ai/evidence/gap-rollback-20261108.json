@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "schemaVersion": 13,
+  "oldJarSha256": "ca0bad79580f2d52be7a837129b16ec734654107b1c056b091af32bdcffe1237",
+  "checks": [
+    "AI off",
+    "health",
+    "login",
+    "write/read isolated article",
+    "all migration checksums unchanged"
+  ],
+  "productionDataTouched": false
+}

@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-08",
+  "scope": "isolated real HTTP evaluation, includes the initial index embedding batch",
+  "providerCalls": 105,
+  "cnyDailyCap": "5",
+  "estimatedCny": "0.035246",
+  "invoice": false,
+  "models": {
+    "deepseek-flash": {
+      "calls": 44,
+      "inputTokens": 12016,
+      "outputTokens": 1365,
+      "unknownUsageCalls": 0
+    },
+    "qwen3.7-text-embedding-flash": {
+      "calls": 61,
+      "inputTokens": 2131,
+      "outputTokens": 0,
+      "unknownUsageCalls": 0
+    }
+  }
+}

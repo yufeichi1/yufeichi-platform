@@ -1,0 +1,230 @@
+{
+  "date": "2026-11-08",
+  "command": "scripts/mvn21.ps1 -q clean verify",
+  "jdk": "21.0.11",
+  "counts": {
+    "tests": 245,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "com.yufeichi.AiAgentIntegrationTests",
+      "tests": "9",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "27.198"
+    },
+    {
+      "name": "com.yufeichi.AiEvaluationRubricTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.006"
+    },
+    {
+      "name": "com.yufeichi.AiIntegrationTests",
+      "tests": "12",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "25.735"
+    },
+    {
+      "name": "com.yufeichi.AiKnowledgeIntegrationTests",
+      "tests": "34",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "176.562"
+    },
+    {
+      "name": "com.yufeichi.AiVectorIntegrationTests",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "38.874"
+    },
+    {
+      "name": "com.yufeichi.Day2IntegrationTests",
+      "tests": "14",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "25.298"
+    },
+    {
+      "name": "com.yufeichi.Day5IntegrationTests",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "29.533"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiAgentServiceTest",
+      "tests": "22",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "2.105"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiConfigurationTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.134"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiCostGuardIntegrationTests",
+      "tests": "8",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.983"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiEmbeddingModelTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.116"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiKnowledgeSourcesTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.002"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiRequestGuardTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.026"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiSummaryServiceTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "1.625"
+    },
+    {
+      "name": "com.yufeichi.server.ai.AiVectorConfigurationTest",
+      "tests": "5",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.47"
+    },
+    {
+      "name": "com.yufeichi.server.ai.SiteReadToolsTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.039"
+    },
+    {
+      "name": "com.yufeichi.server.ai.SiteReadWorkflowTest",
+      "tests": "3",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.021"
+    },
+    {
+      "name": "com.yufeichi.server.ai.SpringAiToolTransportTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.241"
+    },
+    {
+      "name": "com.yufeichi.server.config.ProductionSafetyConfigurationTest",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.141"
+    },
+    {
+      "name": "com.yufeichi.server.exception.GlobalExceptionHandlerTest",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.758"
+    },
+    {
+      "name": "com.yufeichi.server.security.ClientAddressTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.016"
+    },
+    {
+      "name": "com.yufeichi.server.security.JwtAuthenticationFilterTest",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.298"
+    },
+    {
+      "name": "com.yufeichi.server.security.RedisSecurityStoreTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.008"
+    },
+    {
+      "name": "com.yufeichi.server.service.AuthServiceTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.226"
+    },
+    {
+      "name": "com.yufeichi.server.service.ImageStorageTest",
+      "tests": "16",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.163"
+    },
+    {
+      "name": "com.yufeichi.SiteReadIntegrationTests",
+      "tests": "10",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "16.273"
+    },
+    {
+      "name": "com.yufeichi.YufeichiServerApplicationTests",
+      "tests": "18",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "14.181"
+    }
+  ],
+  "jarSha256": "a4eb60a31efe9d8b46dcef800eba1db72559471bd4f04c439f392e6ce37982c1"
+}

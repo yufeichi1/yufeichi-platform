@@ -5,7 +5,7 @@
 ```mermaid
 flowchart TD
     UI[Vue：摘要、知识问答、只读助手] --> Auth[JWT / 现有权限]
-    Auth --> Guard[Redis 配额 + JVM 并发许可]
+    Auth --> Guard[Redis 配额/金额预留 + JVM 并发许可]
     Guard --> Summary[摘要预览：人工采用与保存]
     Guard --> Rag[向量检索 + 源可见性/内容hash复核]
     Guard --> Agent[显式循环：3轮模型 / 4次工具 / 60秒]
@@ -40,3 +40,5 @@ flowchart TD
 3. Day14发现Nginx两处SSE引用不存在的命名错误页，同时Agent缺专用流式location。改用已有错误页，并为Agent设置HTTP/1.1、关闭缓冲和130秒读时限。实际隔离Nginx验证记录见执行报告。
 
 仅为当前数据与环境提供证据，不声称通用防注入、生产容量或模型永不出错。
+
+摘要由 AI_SUMMARY_ENABLED 独立控制，前置于配额与供应商调用；索引管理使用 ai:index:manage 权限（新增 V13）。供应商边界在每次实际 Chat/Embedding 调用前预留人民币估算金额，完整 usage 可得时结算，未知/失败/取消保留预留。日志及评测区分 null 和 0；不记录 Prompt/回答。详见 cost-and-data-policy.md。

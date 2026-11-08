@@ -15,10 +15,11 @@
 
 ## 已实现接口
 
-两个接口均要求有效 JWT，且拥有 `article:add` 或 `article:update`。当前权限是 V1.0 的全站内容管理权限，并非作者行权限。
+摘要接口均要求有效 JWT，且拥有 `article:add` 或 `article:update`。当前权限是 V1.0 的全站内容管理权限，并非作者行权限。
 
 | 接口 | 内容与响应 |
 |---|---|
+| `GET /api/admin/ai/summary/status` | 权限相同；返回 available，关闭后页面禁用生成 |
 | `POST /api/admin/ai/summary` | JSON `{"content":"当前正文"}`；成功返回原 `Result<SummaryResponse>` |
 | `POST /api/admin/ai/summary/stream` | 同一输入；POST SSE；认证、参数、开关、配额错误在建流前返回 HTTP 错误 |
 
@@ -49,6 +50,8 @@
 | 环境变量 | 应用属性 | 默认值 |
 |---|---|---|
 | `AI_ENABLED` | `enabled` | false |
+| `AI_SUMMARY_ENABLED` | `summary-enabled` | true；主开关开启时摘要独立可关闭 |
+| `AI_DAILY_COST_CAP` | `cost.daily-cap` | 5元；需开启金额账本并配置费率/模型快照 |
 | `AI_KNOWLEDGE_ENABLED` | `knowledge-enabled` | false；需AI/向量/模型均已配置 |
 | `AI_KNOWLEDGE_TOP_K` | `knowledge-top-k` | 6；范围1—10，Day13比较3和5 |
 | `AI_PROVIDER_BASE_URL` | `base-url` | 空；启用时必填 |
@@ -336,3 +339,7 @@ Spring AI内部工具执行关闭，模型不能触发隐式循环；每轮由Ai
 - [本轮执行与验收](Day12-Day14-执行与验收报告.md)
 
 此前各Day报告保留当时结论和时间，不将历史线上验收冒充本次复验。
+
+## 2026-11-08 计划差距补齐
+
+新增摘要独立开关和外发提示、MySQL V13 的 `ai:index:manage` 权限、每次模型请求的可得 usage 与人民币估算账本。V1—V12 与 PG 原迁移不变。索引管理前后端均按权限判断，不要求角色名。金额配置和数据保留核对见 [预算与数据处理记录](cost-and-data-policy.md)。原 Day13 评测记录保留，新增严格规则及实际 HTTP SSE 首个有效内容评测，结果见 evaluation.md 的补充记录。公开内容发布及正式验收按实际证据记录，未完成前不把空来源验收等同于非空引用成功。
