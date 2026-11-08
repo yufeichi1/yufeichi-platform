@@ -4,7 +4,7 @@ import { readSse } from "./sse";
 export interface AgentSource { id: string; sourceType: "article" | "project"; sourceId: number; title: string; url: string; contentHash: string }
 export interface AgentResult { requestId: string; mode: "site-agent"; answered: boolean; answer: string; sources: AgentSource[];
   modelRounds: number; steps: { round: number; tool: string; outcome: string; resultCount: number }[];
-  usage: { round: number; inputTokens: number; outputTokens: number }[] }
+  usage: { round: number; inputTokens: number | null; outputTokens: number | null }[] }
 export function agentStatus(signal: AbortSignal): Promise<{ available: boolean }> { return request({ url: "/ai/agent/status", signal }); }
 function invalid(): never { throw new ApiError("助手结果或来源格式不符合要求，请重试", 502); }
 function validate(v: AgentResult, id: string): AgentResult {
@@ -22,8 +22,9 @@ function validate(v: AgentResult, id: string): AgentResult {
   for (const s of v.steps) if (!s || !Number.isInteger(s.round) || s.round < 1 || s.round >= v.modelRounds
     || !["searchArticles", "searchProjects", "getArticleDetail", "getProjectDetail"].includes(s.tool) || !["FOUND", "NOT_FOUND"].includes(s.outcome)
     || !Number.isInteger(s.resultCount) || s.resultCount < 0 || s.resultCount > 5) return invalid();
-  for (const [i, u] of v.usage.entries()) if (!u || u.round !== i + 1 || !Number.isInteger(u.inputTokens) || u.inputTokens < 0
-    || !Number.isInteger(u.outputTokens) || u.outputTokens < 0) return invalid();
+  const validTokens = (n: number | null) => n === null || Number.isInteger(n) && n >= 0;
+  for (const [i, u] of v.usage.entries()) if (!u || u.round !== i + 1 || !validTokens(u.inputTokens)
+    || !validTokens(u.outputTokens)) return invalid();
   return v;
 }
 export async function askAgent(question: string, signal: AbortSignal): Promise<AgentResult> {

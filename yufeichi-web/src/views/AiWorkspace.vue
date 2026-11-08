@@ -4,7 +4,8 @@ import AiSummaryPanel from "@/components/AiSummaryPanel.vue";
 import AiIndexPanel from "@/components/AiIndexPanel.vue";
 import { useUserStore } from "@/stores/user";
 const user = useUserStore();
-const canIndex = computed(() => user.user?.roles?.some(role => role.toLowerCase() === "super_admin"));
+const canIndex = computed(() => user.hasPermission("ai:index:manage"));
+const canSummary = computed(() => user.hasPermission("article:add") || user.hasPermission("article:update"));
 const content = ref(""), summary = ref("");
 // A single bounded input, held in memory only; no persistent conversation history.
 onBeforeUnmount(() => { content.value = ""; summary.value = ""; });
@@ -12,7 +13,7 @@ onBeforeUnmount(() => { content.value = ""; summary.value = ""; });
 <template>
   <section>
     <div class="page-heading"><div><h1>AI 助手</h1><p class="muted">为写作提供帮助，由你决定如何采用。</p></div></div>
-    <div class="panel ai-workspace">
+    <div v-if="canSummary" class="panel ai-workspace">
       <h2>文章摘要</h2>
       <p class="muted">粘贴正文试用，或在文章编辑页直接生成。这里只保留当前输入，离开后清空。</p>
       <label for="ai-source-content">待摘要正文</label>

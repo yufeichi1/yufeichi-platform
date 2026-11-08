@@ -26,7 +26,9 @@ class SpringAiToolTransportTest {
             finally {exchange.close();}
         });server.start();
         try {
-            new ApplicationContextRunner().withUserConfiguration(AiConfiguration.class).withPropertyValues("app.ai.enabled=true",
+            new ApplicationContextRunner().withUserConfiguration(AiConfiguration.class, AiCostGuard.class)
+                    .withBean(org.springframework.data.redis.core.StringRedisTemplate.class, () -> org.mockito.Mockito.mock(org.springframework.data.redis.core.StringRedisTemplate.class))
+                    .withPropertyValues("app.ai.cost.enabled=false", "app.ai.enabled=true",
                     "app.ai.base-url=http://127.0.0.1:"+server.getAddress().getPort(),"app.ai.api-key=transport-fixture-not-real","app.ai.chat-model=fixture")
                     .run(context->{
                         assertThat(context).hasNotFailed();

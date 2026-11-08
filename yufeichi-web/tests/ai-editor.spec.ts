@@ -16,6 +16,34 @@ async function login(page: Page, username = "admin") {
 }
 const panel = (page: Page) => page.getByRole("region", { name: "AI 摘要助手", exact: true });
 
+test("摘要外发说明在编辑页和工作台可见，独立关闭后禁止生成", async ({ page, request }) => {
+  await scenario(request);
+  await login(page);
+  await page.goto("/admin/articles/new");
+  await expect(page.getByText("生成时会将当前正文发送给外部模型服务，请勿输入密码、密钥或个人敏感信息。")).toBeVisible();
+  await page.route("**/api/admin/ai/summary/status", route => route.fulfill({ json: { code: 0, data: { available: false } } }));
+  let dispatched = false;
+  page.on("request", r => { if (r.url().endsWith("/api/admin/ai/summary/stream")) dispatched = true; });
+  await page.goto("/admin/ai");
+  await page.getByLabel("待摘要正文").fill("摘要关闭时仍可编辑的正文");
+  await expect(page.getByText("生成时会将当前正文发送给外部模型服务，请勿输入密码、密钥或个人敏感信息。")).toBeVisible();
+  await expect(page.getByText("摘要服务当前未开启或不可用，仍可手动编辑文章。")).toBeVisible();
+  await expect(page.getByRole("button", { name: "生成摘要", exact: true })).toBeDisabled();
+  expect(dispatched).toBe(false);
+});
+
+test("前端权限快照模拟：只有索引权限时可进入索引面板，不显示摘要", async ({ page }) => {
+  await login(page);
+  await page.route("**/api/auth/me", async route => {
+    const response = await route.fetch(); const data = await response.json();
+    data.data.roles = ["index_operator"]; data.data.permissions = ["ai:index:manage"];
+    await route.fulfill({ json: data });
+  });
+  await page.goto("/admin/ai");
+  await expect(page.getByRole("button", { name: "重建站内索引" })).toBeVisible();
+  await expect(panel(page)).toHaveCount(0);
+});
+
 test("编辑页预览不自动保存，确认采用后手动保存才写入", async ({ page, request }) => {
   await scenario(request);
   const headers = await login(page);

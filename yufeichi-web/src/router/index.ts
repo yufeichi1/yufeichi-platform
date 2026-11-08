@@ -83,7 +83,7 @@ const router = createRouter({
         {
           path: "ai",
           component: () => import("@/views/AiWorkspace.vue"),
-          meta: { anyPermissions: ["article:add", "article:update"], title: "AI 助手" },
+          meta: { anyPermissions: ["article:add", "article:update", "ai:index:manage"], title: "AI 助手" },
         },
         {
           path: "projects",

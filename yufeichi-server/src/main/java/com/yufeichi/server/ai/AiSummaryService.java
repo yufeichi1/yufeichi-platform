@@ -49,11 +49,15 @@ public class AiSummaryService {
                 || request.content().length() > properties.getMaxInputChars()) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "正文为空或超过 AI 输入限制");
         }
-        if (!properties.isEnabled() || model.getIfAvailable() == null) {
+        if (!available()) {
             throw new BusinessException(ErrorCode.AI_UNAVAILABLE);
         }
         return new Prepared(request.content(), RedisSecurityStore.digest(request.content()),
                 UUID.randomUUID().toString(), guard.acquire(userId), System.nanoTime());
+    }
+
+    public boolean available() {
+        return properties.isEnabled() && properties.isSummaryEnabled() && model.getIfAvailable() != null;
     }
 
     public Mono<SummaryResponse> summarize(Prepared request) {
@@ -99,6 +103,7 @@ public class AiSummaryService {
                 .flatMap(tick -> Mono.error(new BusinessException(ErrorCode.AI_TIMEOUT)));
         return Flux.defer(() -> model.getObject().generate(instructions, request.content(), structured))
                 .subscribeOn(worker)
+                .contextWrite(context -> context.put(AiCallTelemetry.CONTEXT_KEY, request.requestId()))
                 .doOnNext(delta -> received.set(true))
                 .retryWhen(Retry.backoff(1, Duration.ofMillis(100)).maxBackoff(Duration.ofMillis(250)).jitter(0.5)
                         .scheduler(timer)

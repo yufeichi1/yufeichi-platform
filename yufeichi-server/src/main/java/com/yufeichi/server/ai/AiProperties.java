@@ -12,6 +12,7 @@ import java.net.URI;
 @ConfigurationProperties("app.ai")
 public class AiProperties {
     private boolean enabled;
+    private boolean summaryEnabled = true;
     private boolean knowledgeEnabled;
     private boolean toolsEnabled;
     private boolean agentEnabled;
@@ -38,6 +39,20 @@ public class AiProperties {
     private int dailyRequestLimit = 100;
     private Embedding embedding = new Embedding();
     private Vector vector = new Vector();
+    private Cost cost = new Cost();
+
+    @Getter @Setter
+    public static class Cost {
+        private boolean enabled = true;
+        private java.math.BigDecimal dailyCap = new java.math.BigDecimal("5");
+        // CNY per million tokens; zero means unconfigured and blocks paid calls.
+        private java.math.BigDecimal chatInputPerMillion = java.math.BigDecimal.ZERO;
+        private java.math.BigDecimal chatOutputPerMillion = java.math.BigDecimal.ZERO;
+        private java.math.BigDecimal embeddingInputPerMillion = java.math.BigDecimal.ZERO;
+        private String chatModel = "";
+        private String embeddingModel = "";
+        private String priceDate = "";
+    }
 
     @Getter @Setter
     public static class Embedding {

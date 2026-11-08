@@ -29,7 +29,7 @@ public class AiVectorConfiguration {
         });
     }
     @Bean
-    AiEmbeddingModel aiEmbeddingModel(AiProperties properties, ThreadPoolExecutor aiEmbeddingExecutor) {
+    AiEmbeddingModel aiEmbeddingModel(AiProperties properties, ThreadPoolExecutor aiEmbeddingExecutor, AiCostGuard costs) {
         var embedding = properties.getEmbedding();
         embedding.validate(); properties.getVector().validate();
         var http = java.net.http.HttpClient.newBuilder().executor(aiEmbeddingExecutor)
@@ -41,7 +41,7 @@ public class AiVectorConfiguration {
         var model = new OpenAiEmbeddingModel(api, MetadataMode.EMBED,
                 OpenAiEmbeddingOptions.builder().model(embedding.getModel()).dimensions(embedding.getDimensions()).encodingFormat("float").build(),
                 RetryTemplate.builder().maxAttempts(1).build(), ObservationRegistry.NOOP);
-        return new AiEmbeddingModel(model, embedding.getDimensions(), properties.getMaxInputChars());
+        return new AiEmbeddingModel(model, embedding.getDimensions(), properties.getMaxInputChars(), costs);
     }
     @Bean(destroyMethod = "close")
     AiVectorStore aiVectorStore(AiProperties properties, AiEmbeddingModel embedding) {

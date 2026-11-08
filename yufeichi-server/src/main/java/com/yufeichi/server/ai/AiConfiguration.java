@@ -71,7 +71,7 @@ public class AiConfiguration {
     @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
     @Conditional(ProviderConfigured.class)
     @ConditionalOnMissingBean(AiModelGateway.class)
-    SpringAiModelGateway aiModelGateway(AiProperties properties, ThreadPoolExecutor aiHttpExecutor, ReactorResourceFactory aiReactiveResources) {
+    SpringAiModelGateway aiModelGateway(AiProperties properties, ThreadPoolExecutor aiHttpExecutor, ReactorResourceFactory aiReactiveResources, AiCostGuard costGuard) {
         properties.validate();
         Builder jdk = java.net.http.HttpClient.newBuilder()
                 .executor(aiHttpExecutor).connectTimeout(Duration.ofSeconds(properties.getConnectTimeoutSeconds()));
@@ -92,7 +92,7 @@ public class AiConfiguration {
                         .maxTokens(properties.getMaxOutputTokens()).internalToolExecutionEnabled(false).build())
                 .retryTemplate(RetryTemplate.builder().maxAttempts(1).build())
                 .observationRegistry(ObservationRegistry.NOOP).build();
-        return new SpringAiModelGateway(model, properties);
+        return new SpringAiModelGateway(model, properties, costGuard);
     }
 
     public static final class ProviderConfigured implements Condition {

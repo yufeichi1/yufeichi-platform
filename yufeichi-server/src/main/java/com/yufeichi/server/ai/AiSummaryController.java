@@ -46,6 +46,11 @@ public class AiSummaryController {
         return result;
     }
 
+    @GetMapping("/status")
+    public Result<java.util.Map<String, Boolean>> status() {
+        return Result.success(java.util.Map.of("available", service.available()));
+    }
+
     @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@Valid @RequestBody SummaryRequest request, @AuthenticationPrincipal LoginUser user,
                              jakarta.servlet.http.HttpServletResponse response) {

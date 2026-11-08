@@ -260,7 +260,7 @@ try {
     const history = () => docker("exec", "-e", "MYSQL_PWD=" + secret, mysql, "mysql", "-uroot", "day3_test", "-Nse",
       "SELECT version,success,checksum FROM flyway_schema_history ORDER BY installed_rank");
     const before = history();
-    if (!before.split("\n").some(line => line.startsWith("12\t1\t"))) throw new Error("New migration not applied");
+    if (!before.split("\n").some(line => line.startsWith("13\t1\t"))) throw new Error("New migration not applied");
     const exited = new Promise(resolve => backendProcess.once("exit", resolve));
     backendProcess.kill(); await exited;
     const legacy = start(join(jdk, "bin", "java.exe"), ["-jar", previousJar,
@@ -270,16 +270,16 @@ try {
     await waitFor(async () => (await fetch(base + "/api/health")).ok, "previous backend on new schema");
     const login = await fetch(base + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: "admin", password: "Admin@123456" }) });
-    if (!login.ok) throw new Error("Previous backend login failed on V12");
+    if (!login.ok) throw new Error("Previous backend login failed on V13");
     const headers = { "Content-Type": "application/json", Authorization: "Bearer " + (await login.json()).data.token };
     const saved = await fetch(base + "/api/admin/articles", { method: "POST", headers,
-      body: JSON.stringify({ title: "隔离回滚夹具", content: "Java21 V12兼容性验证", tagIds: [], isTop: 0, isFeatured: 0 }) });
-    if (!saved.ok) throw new Error("Previous backend write failed on V12");
+      body: JSON.stringify({ title: "隔离回滚夹具", content: "Java21 V13兼容性验证", tagIds: [], isTop: 0, isFeatured: 0 }) });
+    if (!saved.ok) throw new Error("Previous backend write failed on V13");
     const id = (await saved.json()).data.id;
     if (!(await fetch(base + "/api/admin/articles/" + id, { headers })).ok || history() !== before)
       throw new Error("Rollback read or migration history validation failed");
     const stopped = new Promise(resolve => legacy.once("exit", resolve)); legacy.kill(); await stopped;
-    console.log("ISOLATED_ROLLBACK_PASS: actual previous JAR runs, authenticates and reads/writes with V12; checksums unchanged");
+    console.log("ISOLATED_ROLLBACK_PASS: actual previous JAR runs, authenticates and reads/writes with V13; checksums unchanged");
     cleanup(); process.exit(0);
   }
   const testEnv = {

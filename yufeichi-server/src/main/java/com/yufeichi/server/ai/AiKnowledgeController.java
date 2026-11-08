@@ -9,7 +9,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/ai/knowledge")
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasAuthority('ai:index:manage')")
 public class AiKnowledgeController {
     private final AiKnowledgeIndex index;
     public AiKnowledgeController(AiKnowledgeIndex index) { this.index = index; }

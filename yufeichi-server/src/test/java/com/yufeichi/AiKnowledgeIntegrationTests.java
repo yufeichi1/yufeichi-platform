@@ -131,6 +131,40 @@ class AiKnowledgeIntegrationTests {
         assertThat(EMBEDDING.calls).hasValue(1); assertThat(model.calls).hasValue(1);
         assertThat(redis.opsForValue().get("ai:quota:global:day:"+java.time.LocalDate.now(java.time.ZoneOffset.UTC))).isEqualTo("2");
     }
+    @Test void embeddingMoneyLimitStays429AndNoProviderIsCalled() throws Exception {
+        indexed();var cost=properties.getCost();cost.setEnabled(true);
+        cost.setEmbeddingModel(properties.getEmbedding().getModel());cost.setEmbeddingInputPerMillion(java.math.BigDecimal.ONE);
+        cost.setPriceDate("2026-11-08");cost.setDailyCap(new java.math.BigDecimal("0.000001"));
+        try {
+            assertThatThrownBy(()->ask("Java文章使用什么后端技术？"))
+                    .isInstanceOfSatisfying(com.yufeichi.server.common.error.BusinessException.class,
+                            error->assertThat(error.getCode()).isEqualTo(42900));
+            assertThat(EMBEDDING.calls).hasValue(0);assertThat(model.calls).hasValue(0);
+            assertThat(http.getForEntity("/api/articles",String.class).getStatusCode().value()).isEqualTo(200);
+        } finally {cost.setEnabled(false);}
+    }
+    @Test void indexUsesPermissionRatherThanSuperAdminRoleName() throws Exception {
+        business.update("UPDATE sys_user SET status=1 WHERE id=1");
+        business.update("INSERT IGNORE INTO sys_user(id,username,password,status) SELECT 111,'index-operator',password,1 FROM sys_user WHERE id=1");
+        business.update("INSERT IGNORE INTO sys_role(id,role_code,role_name,status) VALUES(111,'index_operator','Index operator',1)");
+        business.update("INSERT IGNORE INTO sys_user_role(user_id,role_id) VALUES(111,111)");
+        String token=http.postForObject("/api/auth/login",Map.of("username","index-operator","password","Admin@123456"),JsonNode.class).path("data").path("token").asText();
+        var headers=new HttpHeaders();headers.setBearerAuth(token);
+        assertThat(http.exchange("/api/admin/ai/knowledge",HttpMethod.GET,new HttpEntity<>(headers),String.class).getStatusCode().value()).isEqualTo(403);
+        business.update("INSERT IGNORE INTO sys_role_permission(role_id,permission_id) SELECT 111,id FROM sys_permission WHERE permission_code='ai:index:manage'");
+        try {
+            assertThat(http.exchange("/api/admin/ai/knowledge",HttpMethod.GET,new HttpEntity<>(headers),String.class).getStatusCode().value()).isEqualTo(200);
+            var response=http.exchange("/api/admin/ai/knowledge/reindex",HttpMethod.POST,new HttpEntity<>(headers),String.class);
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            String job=json.readTree(response.getBody()).path("data").path("jobId").asText();
+            boolean finished=false;
+            for(int i=0;i<100;i++) {
+                if(business.queryForObject("SELECT status FROM ai_index_job WHERE id=?",String.class,job).equals("SUCCEEDED")) {finished=true;break;}
+                Thread.sleep(20);
+            }
+            assertThat(finished).isTrue();
+        } finally {business.update("DELETE FROM sys_role_permission WHERE role_id=111");}
+    }
     @Test void realRedisOutageFailsClosedWithoutPaidCallsAndRecovers() {
         var docker = REDIS.getDockerClient();
         docker.pauseContainerCmd(REDIS.getContainerId()).exec();

@@ -33,7 +33,8 @@ class LiveVectorSmoke {
             vector.setUsername(pg.getUsername()); vector.setPassword(pg.getPassword());
             var configuration = new AiVectorConfiguration(); var executor = configuration.aiEmbeddingExecutor(properties);
             try {
-                var model = configuration.aiEmbeddingModel(properties, executor);
+                properties.getCost().setEnabled(false); // Explicit two-call smoke; no shared app Redis.
+                var model = configuration.aiEmbeddingModel(properties, executor, new AiCostGuard(null, properties));
                 try (var store = new AiVectorStore(properties, model)) {
                     String javaId = UUID.randomUUID().toString();
                     store.add(List.of(new Document(javaId, "公开验收夹具：Java21 Spring Boot后端接口连接MySQL，实现认证与数据库查询。", Map.of("fixture", true)),

@@ -2,6 +2,8 @@
 app:
   ai:
     enabled: false
+    cost:
+      enabled: false # Isolated model fixtures only; paid evaluation explicitly enables the ledger.
     knowledge-enabled: false
     tools-enabled: false
     agent-enabled: false

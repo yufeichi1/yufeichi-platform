@@ -8,6 +8,6 @@ import java.util.List;
 
 /** One provider round only; the application owns execution, budgets and conversation lifetime. */
 public interface AiToolModelGateway {
-    record Round(AssistantMessage message, String finishReason, int inputTokens, int outputTokens) { }
+    record Round(AssistantMessage message, String finishReason, Integer inputTokens, Integer outputTokens) { }
     Mono<Round> round(List<Message> messages, List<ToolCallback> tools);
 }

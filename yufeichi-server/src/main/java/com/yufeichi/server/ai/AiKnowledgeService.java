@@ -66,7 +66,18 @@ public class AiKnowledgeService {
                 .allMatch(d -> verifyDocument(d.document(), context.version()).isPresent());
     }
     public Flux<Event> stream(Prepared request) {
-        Mono<KnowledgeResponse> answer = Mono.fromCallable(() -> retrieve(request.question())).subscribeOn(worker)
+        Mono<KnowledgeResponse> answer = Mono.fromCallable(() -> {
+                    long start = System.nanoTime();
+                    try (var scope = AiCallTelemetry.scope(request.requestId())) {
+                        var context = retrieve(request.question());
+                        AiCallTelemetry.retrieval(request.requestId(), (System.nanoTime()-start)/1_000_000,
+                                context.documents().stream().map(d -> new AiCallTelemetry.Candidate(
+                                        d.reference().sourceType()+":"+d.reference().sourceId(),
+                                        String.valueOf(d.document().getMetadata().get("contentHash")),
+                                        d.document().getId(),d.document().getScore())).toList());
+                        return context;
+                    }
+                }).subscribeOn(worker)
                 .flatMap(context -> {
                     if (context.documents().isEmpty()) return Mono.just(noAnswer(request, context.version()));
                     return generate(request, context);
@@ -85,6 +96,7 @@ public class AiKnowledgeService {
                 .map(tick -> new Event("heartbeat", Map.of("requestId", request.requestId())));
         return Flux.merge(result, heartbeat).takeUntil(event -> event.name().equals("done"))
                 .startWith(new Event("meta", Map.of("requestId", request.requestId(), "mode", "site-knowledge")))
+                .contextWrite(context -> context.put(AiCallTelemetry.CONTEXT_KEY, request.requestId()))
                 .doFinally(signal -> {
                     request.lease().close();
                     org.slf4j.LoggerFactory.getLogger(getClass()).info("ai requestId={} operation=knowledge outcome={} durationMs={}",

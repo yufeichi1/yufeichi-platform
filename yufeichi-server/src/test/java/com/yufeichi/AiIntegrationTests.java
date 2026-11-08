@@ -101,6 +101,42 @@ class AiIntegrationTests {
         assertThat(post(admin, "/stream", Map.of()).getStatusCode().value()).isEqualTo(400);
         assertThat(MODEL.calls).hasValue(0);
     }
+    @Test void summarySwitchIsIndependentAndRejectsBeforeQuota() {
+        properties.setSummaryEnabled(false);
+        try {
+            var headers=new HttpHeaders();headers.setBearerAuth(admin);
+            assertThat(http.exchange("/api/admin/ai/summary/status",HttpMethod.GET,new HttpEntity<>(headers),String.class).getBody()).contains("\"available\":false");
+            assertThat(post(admin,"",Map.of("content","正文")).getStatusCode().value()).isEqualTo(503);
+            assertThat(post(admin,"/stream",Map.of("content","正文")).getStatusCode().value()).isEqualTo(503);
+            assertThat(MODEL.calls).hasValue(0);assertThat(redis.keys("ai:quota:*")).isEmpty();
+            assertThat(properties.isEnabled()).isTrue();
+            assertThat(http.getForEntity("/api/articles",String.class).getStatusCode().value()).isEqualTo(200);
+        } finally { properties.setSummaryEnabled(true); }
+    }
+    @Test void monetaryBudgetBlocksDispatchAndUsageIsCollectedFromWire() throws Exception {
+        var cost=properties.getCost();cost.setEnabled(true);cost.setChatModel(properties.getChatModel());cost.setPriceDate("2026-11-08");
+        cost.setChatInputPerMillion(new java.math.BigDecimal("2"));cost.setChatOutputPerMillion(new java.math.BigDecimal("8"));
+        cost.setDailyCap(new java.math.BigDecimal("0.000001"));
+        try {
+            assertThat(post(admin,"",Map.of("content","正文")).getStatusCode().value()).isEqualTo(429);
+            assertThat(MODEL.calls).hasValue(0);
+            cost.setDailyCap(java.math.BigDecimal.ONE);
+            var response=post(admin,"",Map.of("content","正文"));assertThat(response.getStatusCode().value()).isEqualTo(200);
+            var id=new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody()).path("data").path("requestId").asText();
+            for(int i=0;i<20 && com.yufeichi.server.ai.AiCallTelemetry.snapshot(id).calls().isEmpty();i++) Thread.sleep(20);
+            var call=com.yufeichi.server.ai.AiCallTelemetry.snapshot(id).calls().getFirst();
+            assertThat(call.inputTokens()).isEqualTo(20);assertThat(call.outputTokens()).isEqualTo(8);
+            assertThat(call.estimatedCny()).isLessThanOrEqualTo(call.reservedCny());
+            MODEL.reset("partial-usage");
+            response=post(admin,"",Map.of("content","缺少输出用量的正文"));
+            assertThat(response.getStatusCode().value()).isEqualTo(200);
+            id=new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody()).path("data").path("requestId").asText();
+            for(int i=0;i<20 && com.yufeichi.server.ai.AiCallTelemetry.snapshot(id).calls().isEmpty();i++) Thread.sleep(20);
+            call=com.yufeichi.server.ai.AiCallTelemetry.snapshot(id).calls().getFirst();
+            assertThat(call.inputTokens()).isEqualTo(20);assertThat(call.outputTokens()).isNull();
+            assertThat(call.estimatedCny()).isEqualByComparingTo(call.reservedCny());
+        } finally { cost.setEnabled(false); }
+    }
     @Test void invalidAndOversizeModelOutputsAre502() {
         MODEL.reset("bad-json");
         assertThat(post(admin, "", Map.of("content", "正文")).getStatusCode().value()).isEqualTo(502);

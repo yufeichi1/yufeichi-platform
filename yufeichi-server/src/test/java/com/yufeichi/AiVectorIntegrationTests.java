@@ -69,7 +69,7 @@ class AiVectorIntegrationTests {
     @Test void versionsSchemaAndBusinessDataSourceRemainIndependent() throws Exception {
         assertThat(business.queryForObject("SELECT DATABASE()", String.class)).isEqualTo("vector_business_test");
         try (var connection = businessSource.getConnection()) { assertThat(connection.getMetaData().getURL()).startsWith("jdbc:mysql:"); }
-        assertThat(business.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(12);
+        assertThat(business.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(13);
         assertThat(vector.queryForObject("SELECT current_database()", String.class)).isEqualTo("ai_vector_test");
         assertThat(vector.queryForObject("SELECT current_setting('server_version')", String.class)).startsWith("17.");
         assertThat(vector.queryForObject("SELECT extversion FROM pg_extension WHERE extname='vector'", String.class)).isEqualTo("0.8.6");

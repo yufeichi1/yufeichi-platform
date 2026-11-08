@@ -126,7 +126,7 @@ public final class AiVectorStore implements AutoCloseable {
     }
     private <T> T safely(Supplier<T> operation) {
         try { return operation.get(); }
-        catch (AiProviderException safe) { throw safe; }
+        catch (com.yufeichi.server.common.error.BusinessException safe) { throw safe; }
         catch (RuntimeException privateFailure) { throw new AiProviderException(ErrorCode.AI_UNAVAILABLE, false); }
     }
     @Override public void close() { pool.close(); }

@@ -8,7 +8,9 @@ import static org.mockito.Mockito.mock;
 
 class AiVectorConfigurationTest {
     private ApplicationContextRunner runner() {
-        return new ApplicationContextRunner().withUserConfiguration(AiConfiguration.class, AiVectorConfiguration.class);
+        return new ApplicationContextRunner().withUserConfiguration(AiConfiguration.class, AiVectorConfiguration.class, AiCostGuard.class)
+                .withBean(org.springframework.data.redis.core.StringRedisTemplate.class, () -> mock(org.springframework.data.redis.core.StringRedisTemplate.class))
+                .withPropertyValues("app.ai.cost.enabled=false");
     }
     @Test void aiOffOrVectorOffDoesNotNeedModelOrPostgres() {
         runner().withPropertyValues("app.ai.enabled=false", "app.ai.vector.enabled=true").run(context ->

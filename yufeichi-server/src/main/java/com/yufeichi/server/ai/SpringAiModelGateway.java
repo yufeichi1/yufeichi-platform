@@ -17,24 +17,29 @@ import reactor.core.publisher.Mono;
 final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
     private final OpenAiChatModel model;
     private final AiProperties properties;
+    private final AiCostGuard costs;
 
-    SpringAiModelGateway(OpenAiChatModel model, AiProperties properties) {
+    SpringAiModelGateway(OpenAiChatModel model, AiProperties properties, AiCostGuard costs) {
         this.model = model;
         this.properties = properties;
+        this.costs = costs;
     }
 
     @Override
     public Flux<String> generate(String system, String content, boolean structured) {
-        return Flux.defer(() -> {
+        return Flux.deferContextual(context -> {
+            var reservation = costs.reserve(false, 8192L + bytes(system) + bytes(content), properties.getMaxOutputTokens(),
+                    context.getOrDefault(AiCallTelemetry.CONTEXT_KEY, AiCallTelemetry.current()));
             var completed = new AtomicBoolean();
             var options = OpenAiChatOptions.builder().model(properties.getChatModel())
                     .reasoningEffort(properties.effectiveReasoningEffort())
-                    .maxTokens(properties.getMaxOutputTokens()).internalToolExecutionEnabled(false);
+                    .maxTokens(properties.getMaxOutputTokens()).streamUsage(true).internalToolExecutionEnabled(false);
             if (structured && properties.isJsonMode()) {
                 options.responseFormat(new ResponseFormat(ResponseFormat.Type.JSON_OBJECT, null));
             }
             return model.stream(new Prompt(List.of(new SystemMessage(system), new UserMessage(content)), options.build()))
                     .doOnNext(response -> {
+                        reservation.usage(response.getMetadata().getUsage());
                         if (response.getResult() != null && "STOP".equalsIgnoreCase(response.getResult().getMetadata().getFinishReason()))
                             completed.set(true);
                     })
@@ -44,9 +49,10 @@ final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
                         return text == null ? "" : text;
                     }).filter(text -> !text.isEmpty())
                     .concatWith(Mono.defer(() -> completed.get() ? Mono.empty()
-                            : Mono.error(new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false))));
+                            : Mono.error(new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false))))
+                    .doFinally(signal -> reservation.finish(signal.name()));
         }).onErrorMap(error -> {
-            if (error instanceof AiProviderException) return error;
+            if (error instanceof com.yufeichi.server.common.error.BusinessException) return error;
             int status = error instanceof WebClientResponseException http ? http.getStatusCode().value() : 0;
             boolean timeout = hasType(error, "Timeout");
             // 429 may indicate exhausted credit; don't retry it or an auth/parameter failure.
@@ -55,6 +61,8 @@ final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
             return new AiProviderException(timeout ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_UNAVAILABLE, transientFailure);
         });
     }
+
+    private static int bytes(String text) { return text == null ? 0 : text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length; }
 
     private static boolean hasType(Throwable error, String name) {
         for (int i = 0; error != null && i < 8; i++, error = error.getCause()) {
@@ -65,14 +73,28 @@ final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
 
     @Override public Mono<Round> round(List<org.springframework.ai.chat.messages.Message> messages,
                                       List<org.springframework.ai.tool.ToolCallback> tools) {
-        return Mono.defer(() -> {
+        return Mono.deferContextual(context -> {
+            long bound = 8192;
+            // Count all message/tool serialization, including detail results and tool arguments, before I/O.
+            try {
+                var json = new com.fasterxml.jackson.databind.ObjectMapper();
+                bound += json.writeValueAsBytes(messages).length;
+                for (var tool : tools) bound += bytes(tool.getToolDefinition().name())
+                        + bytes(tool.getToolDefinition().description()) + bytes(tool.getToolDefinition().inputSchema());
+            } catch (com.fasterxml.jackson.core.JsonProcessingException invalid) {
+                return Mono.error(new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false));
+            }
+            var reservation = costs.reserve(false, bound, properties.getMaxOutputTokens(),
+                    context.getOrDefault(AiCallTelemetry.CONTEXT_KEY, AiCallTelemetry.current()));
             var options = OpenAiChatOptions.builder().model(properties.getChatModel())
                     .reasoningEffort(properties.effectiveToolReasoningEffort()).maxTokens(properties.getMaxOutputTokens())
-                    .internalToolExecutionEnabled(false).toolCallbacks(tools).parallelToolCalls(false);
+                    .streamUsage(true).internalToolExecutionEnabled(false).toolCallbacks(tools).parallelToolCalls(false);
             // Only the final, tool-free round requests JSON mode. No implicit model/tool loop.
             if (tools.isEmpty() && properties.isJsonMode()) options.responseFormat(new ResponseFormat(ResponseFormat.Type.JSON_OBJECT, null));
-            return model.stream(new Prompt(messages, options.build())).reduce(new ToolRoundBuffer(), ToolRoundBuffer::add)
-                    .map(ToolRoundBuffer::finish);
+            return model.stream(new Prompt(messages, options.build()))
+                    .doOnNext(response -> reservation.usage(response.getMetadata().getUsage()))
+                    .reduce(new ToolRoundBuffer(), ToolRoundBuffer::add)
+                    .map(ToolRoundBuffer::finish).doFinally(signal -> reservation.finish(signal.name()));
         }).onErrorMap(error -> {
             if (error instanceof com.yufeichi.server.common.error.BusinessException) return error;
             return new AiProviderException(hasType(error, "Timeout") ? ErrorCode.AI_TIMEOUT : ErrorCode.AI_UNAVAILABLE, false);
@@ -83,7 +105,7 @@ final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
         final StringBuilder text = new StringBuilder();
         final java.util.List<org.springframework.ai.chat.messages.AssistantMessage.ToolCall> calls = new java.util.ArrayList<>();
         String reason = "";
-        int input, output;
+        Integer input, output;
         ToolRoundBuffer add(org.springframework.ai.chat.model.ChatResponse response) {
             if (response.getResults().size() > 1) throw new AiProviderException(ErrorCode.AI_INVALID_RESPONSE, false);
             var result = response.getResult();
@@ -96,11 +118,9 @@ final class SpringAiModelGateway implements AiModelGateway, AiToolModelGateway {
                 String finish = result.getMetadata().getFinishReason();
                 if (finish != null && !finish.isBlank()) reason = finish;
             }
-            var usage = response.getMetadata().getUsage();
-            if (usage != null) {
-                input = usage.getPromptTokens() == null ? input : usage.getPromptTokens();
-                output = usage.getCompletionTokens() == null ? output : usage.getCompletionTokens();
-            }
+            var usage = AiCostGuard.tokens(response.getMetadata().getUsage(),false);
+            if (usage.input() != null) input = usage.input();
+            if (usage.output() != null) output = usage.output();
             return this;
         }
         Round finish() {

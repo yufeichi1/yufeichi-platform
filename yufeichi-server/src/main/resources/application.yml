@@ -17,6 +17,7 @@ server:
 app:
   ai:
     enabled: ${AI_ENABLED:false}
+    summary-enabled: ${AI_SUMMARY_ENABLED:true}
     knowledge-enabled: ${AI_KNOWLEDGE_ENABLED:false}
     tools-enabled: ${AI_TOOLS_ENABLED:false}
     agent-enabled: ${AI_AGENT_ENABLED:false}
@@ -41,6 +42,15 @@ app:
     user-minute-limit: ${AI_USER_MINUTE_LIMIT:3}
     user-daily-limit: ${AI_USER_DAILY_LIMIT:10}
     daily-request-limit: ${AI_DAILY_REQUEST_LIMIT:100}
+    cost:
+      enabled: ${AI_COST_ENABLED:true}
+      daily-cap: ${AI_DAILY_COST_CAP:5}
+      chat-input-per-million: ${AI_CHAT_INPUT_CNY_PER_MILLION:0}
+      chat-output-per-million: ${AI_CHAT_OUTPUT_CNY_PER_MILLION:0}
+      embedding-input-per-million: ${AI_EMBEDDING_INPUT_CNY_PER_MILLION:0}
+      chat-model: ${AI_COST_CHAT_MODEL:}
+      embedding-model: ${AI_COST_EMBEDDING_MODEL:}
+      price-date: ${AI_COST_PRICE_DATE:}
     embedding:
       base-url: ${AI_EMBEDDING_BASE_URL:}
       api-key: ${AI_EMBEDDING_API_KEY:}

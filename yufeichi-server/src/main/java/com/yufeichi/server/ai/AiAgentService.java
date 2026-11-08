@@ -37,7 +37,7 @@ public class AiAgentService {
     }
     public record Prepared(String question, long userId, String requestId, AiRequestGuard.Lease lease, long startedNanos) { }
     public record Trace(int round, String tool, String outcome, int resultCount) { }
-    public record Usage(int round, int inputTokens, int outputTokens) { }
+    public record Usage(int round, Integer inputTokens, Integer outputTokens) { }
     public record Source(String id, String sourceType, long sourceId, String title, String url, String contentHash) { }
     public record Response(String requestId, String mode, boolean answered, String answer, List<Source> sources,
                            List<Trace> steps, int modelRounds, List<Usage> usage) { }
@@ -59,6 +59,7 @@ public class AiAgentService {
         return Flux.merge(answer.map(value->new Event("done",value)).flux(),heartbeat)
                 .takeUntil(event->event.name().equals("done"))
                 .startWith(new Event("meta",Map.of("requestId",request.requestId(),"mode","site-agent")))
+                .contextWrite(context -> context.put(AiCallTelemetry.CONTEXT_KEY, request.requestId()))
                 .doFinally(signal->{request.lease().close();org.slf4j.LoggerFactory.getLogger(getClass()).info(
                         "ai requestId={} operation=agent outcome={} durationMs={}",request.requestId(),signal.name(),(System.nanoTime()-request.startedNanos())/1_000_000);});
     }

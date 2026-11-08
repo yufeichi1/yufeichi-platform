@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
 import { streamSummary, type SummaryResponse } from "@/api/ai";
-import { ApiError, errorMessage } from "@/api/http";
+import { ApiError, errorMessage, request } from "@/api/http";
 import MarkdownContent from "@/components/MarkdownContent.vue";
 
 const props = defineProps<{ content: string; disabled?: boolean; existingSummary?: string }>();
@@ -10,10 +10,16 @@ const emit = defineEmits<{ adopt: [summary: string] }>();
 const state = ref<"idle" | "running" | "completed" | "stopped" | "failed">("idle");
 const text = ref(""), message = ref(""), snapshot = ref(""), stale = ref(false);
 const candidate = ref<SummaryResponse | null>(null);
+const available = ref(false), checking = ref(true);
+onMounted(async () => {
+  try { available.value = (await request<{ available: boolean }>({ url: "/admin/ai/summary/status" })).available; }
+  catch { available.value = false; }
+  finally { checking.value = false; }
+});
 let controller: AbortController | undefined;
 let disposed = false;
 const running = computed(() => state.value === "running");
-const canGenerate = computed(() => !running.value && !props.disabled && !!props.content.trim() && props.content.length <= 12000);
+const canGenerate = computed(() => available.value && !running.value && !props.disabled && !!props.content.trim() && props.content.length <= 12000);
 const canAdopt = computed(() => state.value === "completed" && !stale.value && !props.disabled
   && !!candidate.value && props.content === snapshot.value);
 const label = computed(() => ({ idle: "等待生成", running: "正在生成", completed: "生成完成，等待你确认",
@@ -76,12 +82,15 @@ onBeforeUnmount(() => { disposed = true; controller?.abort(); });
 <template>
   <section class="ai-summary-panel" aria-label="AI 摘要助手" :aria-busy="running">
     <div class="ai-summary-heading">
-      <div><h3>AI 摘要助手</h3><p class="muted">根据当前正文生成候选；不会自动保存或发布文章。</p></div>
+      <div><h3>AI 摘要助手</h3><p class="muted">根据当前正文生成候选；不会自动保存或发布文章。</p>
+        <p class="muted">生成时会将当前正文发送给外部模型服务，请勿输入密码、密钥或个人敏感信息。</p></div>
       <div class="ai-summary-actions">
         <el-button :disabled="!canGenerate" @click="generate">{{ running ? "正在生成…" : "生成摘要" }}</el-button>
         <el-button v-if="running" @click="stop">停止生成</el-button>
       </div>
     </div>
+    <p v-if="checking" role="status">正在检查摘要服务…</p>
+    <p v-else-if="!available" role="status">摘要服务当前未开启或不可用，仍可手动编辑文章。</p>
     <p v-if="!content.trim()" class="muted">先填写正文，再生成摘要。</p>
     <p v-else-if="content.length > 12000" role="alert">正文超过 12000 字符，请缩短后再生成；系统不会静默截断。</p>
     <p class="ai-summary-status" role="status">{{ label }}</p>

@@ -62,7 +62,11 @@ public final class AiWireFixture implements AutoCloseable {
                         var finalChunk = Map.of("id", "fixture-id", "object", "chat.completion.chunk", "created", 1,
                                 "model", "fixture-model", "choices", List.of(Map.of("index", 0,
                                 "delta", Map.of(), "finish_reason", scenario.equals("truncated") ? "length" : "stop")));
-                        exchange.getResponseBody().write(("data: " + json.writeValueAsString(finalChunk) + "\n\ndata: [DONE]\n\n").getBytes(StandardCharsets.UTF_8));
+                        var usageChunk = Map.of("id","fixture-id","object","chat.completion.chunk","created",1,"model","fixture-model",
+                                "choices",List.of(),"usage",scenario.equals("partial-usage")?Map.of("prompt_tokens",20,"total_tokens",20)
+                                        :Map.of("prompt_tokens",20,"completion_tokens",8,"total_tokens",28));
+                        exchange.getResponseBody().write(("data: " + json.writeValueAsString(finalChunk) + "\n\ndata: "
+                                + json.writeValueAsString(usageChunk) + "\n\ndata: [DONE]\n\n").getBytes(StandardCharsets.UTF_8));
                         exchange.getResponseBody().flush();
                     }
                 } catch (java.io.IOException cancelled) { disconnected.incrementAndGet(); }
