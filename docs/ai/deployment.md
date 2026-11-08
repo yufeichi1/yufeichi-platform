@@ -56,3 +56,8 @@ node scripts/test-web.mjs ai-showcase-live.spec.ts
 6. 记录实际release/SHA/JARhash、模型与索引版本、资源和烟测，才写“已上线”。未执行上述生产步骤时状态始终为“本地开发/部署预演验收，待正式上线”。
 
 官方依据于2026-11-05核对：[Nginx代理缓冲](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering)、[读超时](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout)。read_timeout是两次上游读之间的时限，不能代替应用总截止时间；关闭缓冲也不能替代浏览器实际分段检查。
+
+
+## 2026-11-08 最新发布补充
+
+当前正式release为 `20261108T072444Z-9ad6c58`，新JAR已通过245后端与49项实际Nginx浏览器验收；旧生产JAR在新V13独立库上的登录、读写和checksum预演通过。V13只增量添加索引管理权限，回退不反向删除迁移。摘要可通过 `AI_SUMMARY_ENABLED=false` 单独关闭；金额配置见 cost-and-data-policy.md，生产每日5元，费率/模型快照缺失时拒绝付费I/O。完整发布前后备份、恢复、非空真实文章引用、助手链路和当前提交见 [最终验收报告](计划差距补齐与最终验收报告.md)。上面的Day14预演记录按其原始日期保留，不当作本轮最新产物。

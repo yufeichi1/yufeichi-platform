@@ -1,0 +1,16 @@
+{
+  "kind": "real-production-https-real-approved-content-real-models",
+  "checks": {
+    "summaryDisclosureAndPermissionEntry": true,
+    "realSummaryAdoptedWithoutArticleWrite": true,
+    "realAgentSearchDetailAnswerAndSource": true,
+    "agentSourceOpensOriginal": true,
+    "logoutRevokesToken": true,
+    "anonymousRealRagWithSource": true,
+    "mobile375": true,
+    "ragSourceOpensOriginal": true,
+    "inputClearedAfterLeaving": true,
+    "noPageErrors": true
+  },
+  "passed": true
+}

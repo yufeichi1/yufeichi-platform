@@ -1,0 +1,607 @@
+{
+  "date": "2026-11-08",
+  "observedAtUtc": "2026-11-08T07:34:10.238924+00:00",
+  "release": {
+    "sourceCommit": "9ad6c58dca77b16d382ebaae0d974502d3f94758",
+    "release": "20261108T072444Z-9ad6c58",
+    "previousBackend": "/opt/yufeichi/backend/releases/20261105T120255Z-7ce1cef",
+    "previousFrontend": "/var/www/yufeichi-app/releases/20261105T120255Z-7ce1cef",
+    "envBackup": "/var/lib/yufeichi/release-audit/gap-20261108/backend-env-20261108T072444Z-9ad6c58",
+    "nginxBackup": "/var/lib/yufeichi/release-audit/gap-20261108/nginx-20261108T072444Z-9ad6c58",
+    "jarSha256": "a4eb60a31efe9d8b46dcef800eba1db72559471bd4f04c439f392e6ce37982c1",
+    "predeployBackup": "backup-20261108T072020Z-3717979",
+    "activated": true,
+    "migrationHistory": "1\t1\t1457891991\n2\t1\t-2112776796\n3\t1\t-663793275\n4\t1\t2115728188\n5\t1\t1792074382\n6\t1\t1697554631\n7\t1\t-1290070349\n8\t1\t-728566509\n9\t1\t-1751204810\n10\t1\t1396291764\n11\t1\t-1419457953\n12\t1\t-151986281\n13\t1\t-2040575734",
+    "publicSources": {
+      "articles": 0,
+      "projects": 0
+    },
+    "aiOffCoreVerified": true
+  },
+  "productionAcceptance": {
+    "date": "2026-11-08",
+    "kind": "real-production-public-content-and-real-models",
+    "checks": {
+      "coreAuthenticationPermissionAndSummaryStatus": true,
+      "approvedRealArticlePublishedAndPublicOriginalMatches": true,
+      "nonemptyPublicContentIndexActivated": true,
+      "realRagKnownFactWithCanonicalValidCitation": true,
+      "unknownQuestionDoesNotInventAnswer": true,
+      "fixedReadonlyWorkflowFindsRealArticle": true,
+      "realAgentSearchThenDetailThenGroundedAnswer": true,
+      "realSummaryWithUsageLogRequestId": true,
+      "canonicalSourcePageAndProductionDocsHidden": true
+    },
+    "publicArticle": {
+      "id": 4,
+      "title": "Yufeichi Platform：个人内容网站与 AI 应用实践",
+      "url": "/articles/4",
+      "contentSha256": "6eb926472cdbf07cdaae853c353586e150568be3405b221854ce54c96a21a0ff",
+      "chars": 745
+    },
+    "index": {
+      "jobId": "7aa5ad03-a85c-4b09-a06e-360d13cff2ab",
+      "version": "0bccb630-2e72-4cda-a3de-790068dc2893",
+      "sourceCount": 1,
+      "chunkCount": 1
+    },
+    "knowledge": {
+      "result": {
+        "answer": "Yufeichi Platform 后端固定使用 Java 21。",
+        "answered": true,
+        "sources": [
+          {
+            "id": "S1",
+            "sourceType": "article",
+            "sourceId": 4,
+            "title": "Yufeichi Platform：个人内容网站与 AI 应用实践",
+            "url": "/articles/4"
+          }
+        ],
+        "indexVersion": "0bccb630-2e72-4cda-a3de-790068dc2893",
+        "requestId": "699f9cc1-7960-4770-b46b-5c8c592c5575"
+      },
+      "timing": {
+        "requestId": "699f9cc1-7960-4770-b46b-5c8c592c5575",
+        "firstEffectiveMs": 1681,
+        "totalMs": 1695,
+        "events": [
+          "meta",
+          "heartbeat",
+          "delta",
+          "sources",
+          "done"
+        ]
+      }
+    },
+    "unknown": {
+      "result": {
+        "answer": "站内暂无足够依据回答这个问题。请尝试更具体的文章或项目问题。",
+        "answered": false,
+        "sources": [],
+        "indexVersion": "0bccb630-2e72-4cda-a3de-790068dc2893",
+        "requestId": "1f9320f2-983c-4913-a695-40fddd6f12e9"
+      },
+      "timing": {
+        "requestId": "1f9320f2-983c-4913-a695-40fddd6f12e9",
+        "firstEffectiveMs": 136,
+        "totalMs": 139,
+        "events": [
+          "meta",
+          "delta",
+          "sources",
+          "done"
+        ]
+      }
+    },
+    "workflow": {
+      "requestId": "08146be6-d05a-4e59-8557-9c974805ded6",
+      "mode": "fixed-query",
+      "message": "已查询公开内容，并展示每类首项的原文摘录；可点击来源查看完整内容。",
+      "matches": [
+        {
+          "sourceType": "article",
+          "sourceId": 4,
+          "title": "Yufeichi Platform：个人内容网站与 AI 应用实践",
+          "excerpt": "介绍 Yufeichi Platform 的技术栈、三个 AI 使用场景，以及权限、来源校验、测试隔离等工程边界。",
+          "url": "/articles/4",
+          "snapshotHash": "2d08f57572bcb054eeade844eb62d59a190e35fa20cd65e4face96e6afdbd196"
+        }
+      ],
+      "details": [
+        {
+          "sourceType": "article",
+          "sourceId": 4,
+          "title": "Yufeichi Platform：个人内容网站与 AI 应用实践",
+          "text": "介绍 Yufeichi Platform 的技术栈、三个 AI 使用场景，以及权限、来源校验、测试隔离等工程边界。\n\nYufeichi Platform 是我的个人全栈项目，用于展示文章和项目，并在原有内容管理能力上实践 AI 应用工程。后端固定使用 Java 21，采用 Spring Boot 3、Spring Security 和 MyBatis-Plus；前端使用 Vue 3、TypeScript 和 Vite。MySQL 保存业务数据，Redis 支持认证与请求配额，数据库结构由 Flyway 管理。\n\n网站的 AI 功能围绕三个具体场景构建。文章摘要助手根据编辑器中的正文生成候选摘要，由作者核对和采用，不自动保存或发布文章。站内知识问答只检索已发布文章与公开项目，利用独立的 PostgreSQL/pgvector 索引获取相关片段，并返回可以打开原文的来源。只读助手可以调用文章搜索、项目搜索、文章详情和项目详情四种工具，完成受限的多步骤查询。\n\n聊天模型与向量模型分别配置，通过后端调用外部服务，API 密钥不发送给浏览器。摘要面向有文章编辑权限的用户；索引管理使用独立权限。站内问答在检索和回答前后核对源内容的公开状态与版本，减少下架或修改后的旧内容继续出现在回答中的风险。工具只提供公开内容查询，不执行写入、任意 SQL 或外部 URL 请求。\n\n这次实践重点是将模型接入已有业务系统：控制输入与输出、限流和超时、取消长请求、验证来源、处理索引同步失败，以及在 AI 不可用时保持原网站功能可用。测试环境与生产数据隔离，模型桩用于确定性回归，真实模型评测单独记录。评测中的构造内容属于测试夹具，不代表实际业务规模，也不作为性能宣传。\n\n这是一个个人项目，不声称具有商业客户、企业工作经历或未经测量的吞吐量。后续会继续根据实际使用体验完善内容与交互，并保留实现、测试和部署的真实记录。",
+          "url": "/articles/4",
+          "contentHash": "6b7a379373a2917b4e2df35b364432485b618e7560208988f97ca761829b9307",
+          "truncated": false
+        }
+      ],
+      "steps": [
+        {
+          "tool": "searchArticles",
+          "outcome": "FOUND",
+          "resultCount": 1
+        },
+        {
+          "tool": "getArticleDetail",
+          "outcome": "FOUND",
+          "resultCount": 1
+        }
+      ]
+    },
+    "agent": {
+      "result": {
+        "requestId": "a5f4c272-8052-4eef-94a1-7ee2dd071ca4",
+        "mode": "site-agent",
+        "answered": true,
+        "answer": "项目后端固定使用 Java 21。原文写明：“后端固定使用 Java 21，采用 Spring Boot 3、Spring Security 和 MyBatis-Plus”。",
+        "sources": [
+          {
+            "id": "S1",
+            "sourceType": "article",
+            "sourceId": 4,
+            "title": "Yufeichi Platform：个人内容网站与 AI 应用实践",
+            "url": "/articles/4",
+            "contentHash": "6b7a379373a2917b4e2df35b364432485b618e7560208988f97ca761829b9307"
+          }
+        ],
+        "steps": [
+          {
+            "round": 1,
+            "tool": "searchArticles",
+            "outcome": "FOUND",
+            "resultCount": 1
+          },
+          {
+            "round": 2,
+            "tool": "getArticleDetail",
+            "outcome": "FOUND",
+            "resultCount": 1
+          }
+        ],
+        "modelRounds": 3,
+        "usage": [
+          {
+            "round": 1,
+            "inputTokens": 1063,
+            "outputTokens": 55
+          },
+          {
+            "round": 2,
+            "inputTokens": 1243,
+            "outputTokens": 38
+          },
+          {
+            "round": 3,
+            "inputTokens": 1015,
+            "outputTokens": 50
+          }
+        ]
+      },
+      "timing": {
+        "requestId": "a5f4c272-8052-4eef-94a1-7ee2dd071ca4",
+        "firstEffectiveMs": null,
+        "totalMs": 3267,
+        "events": [
+          "meta",
+          "heartbeat",
+          "heartbeat",
+          "heartbeat",
+          "done"
+        ]
+      }
+    },
+    "summary": {
+      "result": {
+        "summary": "这是一个个人全栈项目，用于展示文章和项目并实践 AI 应用工程。后端使用 Java 21、Spring Boot 3、Spring Security 和 MyBatis-Plus，前端使用 Vue 3、TypeScript 和 Vite，MySQL 保存业务数据，Redis 支持认证与请求配额，Flyway 管理数据库结构。AI 功能包括：文章摘要助手生成候选摘要供作者核对采用；站内知识问答仅检索已发布文章与公开项目，基于独立 PostgreSQL/pgvector 索引返回可打开原文的来源；只读助手可调用四种工具完成受限多步查询。模型经后端调用，密钥不发送给浏览器，并涉及权限、公开状态与版本核对、限流超时、取消长请求、来源验证、索引同步失败处理及 AI 不可用时保持原功能可用。测试环境与生产数据隔离，使用模型桩回归并单独记录真实模型评测。项目为个人项目，不声称商业客户或企业工作经历，后续将继续完善。",
+        "contentHash": "6eb926472cdbf07cdaae853c353586e150568be3405b221854ce54c96a21a0ff",
+        "requestId": "32584b71-443a-4cc4-ac3b-1db64e6e749b"
+      },
+      "timing": {
+        "requestId": "32584b71-443a-4cc4-ac3b-1db64e6e749b",
+        "firstEffectiveMs": 1118,
+        "totalMs": 2200,
+        "events": [
+          "meta",
+          "heartbeat",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "heartbeat",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "delta",
+          "done"
+        ]
+      }
+    },
+    "passed": true,
+    "completedAtUtc": "2026-11-08T07:26:18.493069+00:00"
+  },
+  "publicSources": {
+    "articles": 1,
+    "projects": 0
+  },
+  "migrationRows": 13,
+  "oldMigrationChecksumsUnchanged": true,
+  "costConfiguration": {
+    "AI_ENABLED": "true",
+    "AI_SUMMARY_ENABLED": "true",
+    "AI_COST_ENABLED": "true",
+    "AI_DAILY_COST_CAP": "5",
+    "AI_CHAT_INPUT_CNY_PER_MILLION": "2",
+    "AI_CHAT_OUTPUT_CNY_PER_MILLION": "8",
+    "AI_EMBEDDING_INPUT_CNY_PER_MILLION": "0.125",
+    "AI_COST_CHAT_MODEL": "deepseek-flash",
+    "AI_COST_EMBEDDING_MODEL": "qwen3.7-text-embedding-flash",
+    "AI_COST_PRICE_DATE": "2026-11-08"
+  },
+  "currentConservativeLedgerMicroCny": 61444,
+  "vendorInvoice": false,
+  "cancel": {
+    "requestId": "afe1bda7-0262-4256-9195-7f2e317a36ae",
+    "cancelledAfterFirstDelta": true,
+    "alreadyDone": false,
+    "serverCancelled": true
+  },
+  "safeProviderCalls": [
+    {
+      "requestId": "699f9cc1-7960-4770-b46b-5c8c592c5575",
+      "kind": "embedding",
+      "model": "qwen3.7-text-embedding-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 87,
+      "inputTokens": 27,
+      "outputTokens": 0,
+      "reservedCny": "0.001030",
+      "estimatedCny": "0.000004"
+    },
+    {
+      "requestId": "699f9cc1-7960-4770-b46b-5c8c592c5575",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 1290,
+      "inputTokens": 674,
+      "outputTokens": 28,
+      "reservedCny": "0.028912",
+      "estimatedCny": "0.001572"
+    },
+    {
+      "requestId": "1f9320f2-983c-4913-a695-40fddd6f12e9",
+      "kind": "embedding",
+      "model": "qwen3.7-text-embedding-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 97,
+      "inputTokens": 21,
+      "outputTokens": 0,
+      "reservedCny": "0.001029",
+      "estimatedCny": "0.000003"
+    },
+    {
+      "requestId": "a5f4c272-8052-4eef-94a1-7ee2dd071ca4",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 937,
+      "inputTokens": 1063,
+      "outputTokens": 55,
+      "reservedCny": "0.029354",
+      "estimatedCny": "0.002566"
+    },
+    {
+      "requestId": "a5f4c272-8052-4eef-94a1-7ee2dd071ca4",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 838,
+      "inputTokens": 1243,
+      "outputTokens": 38,
+      "reservedCny": "0.030972",
+      "estimatedCny": "0.002790"
+    },
+    {
+      "requestId": "a5f4c272-8052-4eef-94a1-7ee2dd071ca4",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 1325,
+      "inputTokens": 1015,
+      "outputTokens": 50,
+      "reservedCny": "0.032470",
+      "estimatedCny": "0.002430"
+    },
+    {
+      "requestId": "32584b71-443a-4cc4-ac3b-1db64e6e749b",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "ON_COMPLETE",
+      "durationMs": 2151,
+      "inputTokens": 445,
+      "outputTokens": 212,
+      "reservedCny": "0.027122",
+      "estimatedCny": "0.002586"
+    },
+    {
+      "requestId": "afe1bda7-0262-4256-9195-7f2e317a36ae",
+      "kind": "chat",
+      "model": "deepseek-flash",
+      "outcome": "CANCEL",
+      "durationMs": 729,
+      "inputTokens": null,
+      "outputTokens": null,
+      "reservedCny": "0.037370",
+      "estimatedCny": "0.037370"
+    }
+  ],
+  "service": "NRestarts=0\nMemoryCurrent=406175744\nActiveState=active",
+  "frontendIndexSha256": "325e8622e903ff083481522909f006728192dd6ae0aafc65ea3a253bb853fb6d",
+  "backupFiles": {
+    "before": {
+      "name": "backup-20261108T072020Z-3717979.tar.gz",
+      "sha256": "7d752e8010ee6f40678301426b92aec5251d6524e73d7ca4ec7beff40a827f9e",
+      "bytes": 15202
+    },
+    "after": {
+      "name": "backup-20261108T073029Z-3727750.tar.gz",
+      "sha256": "a181e9b58ef420bd60ec157ca38f0d8cf7464488e238ad7e49f125857b6f6608",
+      "bytes": 23907
+    }
+  },
+  "predeployRestore": {
+    "kind": "production-backup-restored-only-to-owned-no-network-container",
+    "passed": true,
+    "backup": "backup-20261108T072020Z-3717979",
+    "tableCounts": {
+      "users": "2",
+      "roles": "2",
+      "articles": "3",
+      "projects": "1",
+      "files": "9"
+    },
+    "migrationRows": 12,
+    "uploadLinksChecked": 9,
+    "configArchiveReadable": true
+  },
+  "postdeployRestore": {
+    "kind": "production-backup-restored-only-to-owned-no-network-container",
+    "passed": true,
+    "backup": "backup-20261108T073029Z-3727750",
+    "tableCounts": {
+      "users": "2",
+      "roles": "2",
+      "articles": "4",
+      "projects": "1",
+      "files": "9"
+    },
+    "migrationRows": 13,
+    "uploadLinksChecked": 9,
+    "configArchiveReadable": true,
+    "publicArticleContentSha256": "6eb926472cdbf07cdaae853c353586e150568be3405b221854ce54c96a21a0ff"
+  },
+  "vectorRestore": {
+    "passed": true,
+    "rows": 1,
+    "migrations": 2,
+    "dimensions": 1024,
+    "vectorContentMetadataFingerprint": "9e129f59329bc1803f0309c9fa12d21e",
+    "backup": "backup-20261108T073029Z-3727750"
+  },
+  "passed": true,
+  "deliveryChecks": {
+    "temporaryAdministratorCredentialsRemoved": true,
+    "ownedTransferStagingRemoved": true,
+    "protectedOffsiteBackupHashesVerified": true,
+    "finalHealthOk": true,
+    "source": "SSH cleanup assertions and local SHA256 verification after production acceptance"
+  }
+}
